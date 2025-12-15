@@ -100,3 +100,6 @@ prod.json
 __blobstorage__
 __queuestorage__
 __azurite_db*__.json
+
+invoices/
+invoices/*
