@@ -1,7 +1,7 @@
 {
   "name": "faktura-ai-ocr",
   "version": "1.0.0",
-  "description": "Extract text from invoices using AI-powered OCR technology",
+  "description": "Extract data from invoices using AI-powered OCR technology",
   "main": "dist/src/index.js",
   "type": "module",
   "scripts": {
