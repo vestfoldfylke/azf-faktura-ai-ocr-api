@@ -8,7 +8,7 @@ export const createDirectoryIfNotExists = (dirPath: string): void => {
     }
 
     logger.info("Output directory '{OutputDir}' does not exist. Creating...", dirPath);
-    mkdirSync(dirPath, {recursive: true});
+    mkdirSync(dirPath, { recursive: true });
     logger.info("Output directory '{OutputDir}' created.", dirPath);
   } catch (error) {
     logger.errorException(error, "Failed to create output directory '{OutputDir}'", dirPath);

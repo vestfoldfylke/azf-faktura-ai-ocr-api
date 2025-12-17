@@ -2,14 +2,16 @@ import { type Dirent, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import { logger } from "@vestfoldfylke/loglady";
 
-import { OCRResponse } from "@mistralai/mistralai/models/components";
+import { type OCRResponse } from "@mistralai/mistralai/models/components";
+
+import { ImageSchema, InvoiceSchema } from "./types/zod-ocr.js";
 
 import { createDirectoryIfNotExists } from "./lib/output-fns.js";
 import { base64Ocr } from "./lib/mistral-ocr.js";
 import { chunkPdf } from "./lib/pdf-fns.js";
 
+const invoicePath: string = "./input";
 const outputPath: string = "./output";
-const invoicePath: string = `${outputPath}/invoices`;
 const chunkedInvoiceDir: string = `${outputPath}/chunks`;
 const ocrOutputDir: string = `${outputPath}/ocr`;
 
@@ -39,12 +41,23 @@ for (const pdf of pdfs) {
     logger.info("[{FileIndex} / {FileLength}] :: OCR processing file", fileIndex++, chunkedFilePaths.length);
 
     const base64Data: string = readFileSync(filePath, { encoding: "base64" });
-    const response: OCRResponse = await base64Ocr(base64Data);
+    const response: OCRResponse = await base64Ocr(base64Data, {
+      bboxAnnotationFormat: ImageSchema,
+      documentAnnotationFormat: InvoiceSchema,
+      includeImageBase64: false
+    });
 
-    const outputFilePath = `${ocrOutputDir}/${basename(filePath, ".pdf")}.json`;
-    writeFileSync(outputFilePath, JSON.stringify(response, null, 2));
+    const outputResponseFilePath = `${ocrOutputDir}/${basename(filePath, ".pdf")}.json`;
+    writeFileSync(outputResponseFilePath, JSON.stringify(response, null, 2));
+
+    const outputDocumentAnnotationFilePath = response.documentAnnotation
+      ? `${ocrOutputDir}/${basename(filePath, ".pdf")}_da.json`
+      : null;
+    if (outputDocumentAnnotationFilePath) {
+      writeFileSync(outputDocumentAnnotationFilePath, JSON.stringify(JSON.parse(response.documentAnnotation), null, 2));
+    }
 
     const endTime = Date.now();
-    logger.info("OCR completed in {Duration} ms. Output written to '{OutputFilePath}'", (endTime - startTime), outputFilePath);
+    logger.info("OCR completed in {Duration} ms. Output response written to '{OutputResponseFilePath}'. Output document annotation written to '{OutputDocumentAnnotationFilePath}'", (endTime - startTime), outputResponseFilePath, outputDocumentAnnotationFilePath);
   }
 }

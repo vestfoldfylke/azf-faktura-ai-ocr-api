@@ -8,12 +8,12 @@ import { PDFDocument } from "pdf-lib";
  *
  * @param path - The path to the input PDF file.
  * @param outputDir - The directory where the chunked PDF files will be saved.
- * @param maxPages - The maximum number of pages allowed in each chunked PDF. Default is 8.
+ * @param maxPages - The maximum number of pages allowed in each chunked PDF. Default is 4.
  * @param moveOnNoChunk - If true and the PDF does not need chunking, the original file will be moved to the output directory.<br />If false and the PDF does not need chunking, the original file will be copied to the output directory.<br />Default is true.
  * 
  * @return Array of file paths for the chunked PDF files. Or an array with the moved/copied file path if no chunking was needed.
  */
-export const chunkPdf = async (path: string, outputDir: string, maxPages: number = 8, moveOnNoChunk: boolean = true): Promise<string[]> => {
+export const chunkPdf = async (path: string, outputDir: string, maxPages: number = 4, moveOnNoChunk: boolean = true): Promise<string[]> => {
   const fileBuffer = readFileSync(path);
   const pdfDoc: PDFDocument = await PDFDocument.load(fileBuffer);
   const pageCount: number = pdfDoc.getPageCount();
