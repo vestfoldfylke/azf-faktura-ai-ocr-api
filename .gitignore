@@ -105,3 +105,6 @@ input/
 input/*
 output/
 output/*
+
+# macOS system files
+.DS_Store
