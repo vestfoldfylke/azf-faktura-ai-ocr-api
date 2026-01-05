@@ -14,7 +14,7 @@ export const createDirectoryIfNotExists = (dirPath: string): void => {
     logger.errorException(error, "Failed to create output directory '{OutputDir}'", dirPath);
     throw error;
   }
-}
+};
 
 export const fileExists = (filePath: string): boolean => {
   try {
@@ -23,4 +23,4 @@ export const fileExists = (filePath: string): boolean => {
     logger.errorException(error, "Failed to check if file exists '{FilePath}'", filePath);
     return false;
   }
-}
+};
