@@ -15,3 +15,12 @@ export const createDirectoryIfNotExists = (dirPath: string): void => {
     throw error;
   }
 }
+
+export const fileExists = (filePath: string): boolean => {
+  try {
+    return existsSync(filePath);
+  } catch (error) {
+    logger.errorException(error, "Failed to check if file exists '{FilePath}'", filePath);
+    return false;
+  }
+}

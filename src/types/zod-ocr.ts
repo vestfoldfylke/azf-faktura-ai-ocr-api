@@ -6,8 +6,8 @@ const ProductSchema = z.object({
   description: z.string().describe("Beskrivelse av produktet eller tjenesten"),
   quantity: z.number().nullable().describe("Antall enheter av produktet eller tjenesten som desimaltall, kan være null hvis ikke tilgjengelig"),
   unit: z.string().nullable().describe("Enhet for mengde, f.eks. 'stk', 'kg', kan være null hvis ikke tilgjengelig"),
-  unitPrice: z.number().nullable().describe("Pris per enhet av produktet eller tjenesten som desimaltall, kan være null hvis ikke tilgjengelig"),
-  totalPrice: z.number().nullable().describe("Totalpris for linjeelementet (quantity * unitPrice) som desimaltall, kan være null hvis ikke tilgjengelig")
+  unitPrice: z.number().nullable().describe("Pris per enhet av produktet eller tjenesten som desimaltall. Kan være skrevet som et helt tall eller med mellomrom mellom hver tusen. Kan være null hvis ikke tilgjengelig"),
+  totalPrice: z.number().nullable().describe("Totalpris for linjeelementet (quantity * unitPrice) som desimaltall. Kan være skrevet som et helt tall eller med mellomrom mellom hver tusen. Kan være null hvis ikke tilgjengelig")
 });
 
 const WorkListSchema = z.object({
@@ -16,17 +16,24 @@ const WorkListSchema = z.object({
   employee: z.string().describe("Navn på ansatt eller kontraktør som utførte arbeidet"),
   project: z.string().describe("Prosjektnavn, prosjektnummer eller prosjektbeskrivelse knyttet til arbeidet"),
   activity: z.string().describe("Type aktivitet eller arbeidsbeskrivelse"),
-  period: z.string().describe("Tidsperiode for arbeidet, f.eks. 'HH:mm - HH:mm'"),
+  period: z.string().describe("Tidsperiode for arbeidet, 'HH:mm - HH:mm'"),
   fromDate: z.string().describe("Startdato for arbeidsperioden i format DD.MM.YYYY, basert på dato-feltet når arbeidet startet"),
   toDate: z.string().describe("Sluttdato for arbeidsperioden i format DD.MM.YYYY. Samme som fromDate hvis arbeidet ble utført innenfor samme dag. Hvis sluttiden går over midnatt, settes denne til neste dag."),
   payType: z.string().describe("Lønnsart eller lønnskode knyttet til arbeidet"),
   extras: z.string().nullable().describe("Tilleggskoder og beskrivelse av tillegg, kan være null hvis ikke tilgjengelig"),
+  total: z.string().nullable().describe("Tid brukt totalt på arbeidsoppføringen, som desimaltall, kan være null hvis ikke tilgjengelig"),
   machineHours: z.number().nullable().describe("Maskintimer med utstyrskoder brukt, som desimaltall, kan være null hvis ikke tilgjengelig"),
   comments: z.string().nullable().describe("Eventuelle kommentarer eller notater knyttet til arbeidsoppføringen, kan være null hvis ikke tilgjengelig"),
   page_number: z.number().describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet")
 });
 
 export const InvoiceSchema = z.object({
+  // Related time lists (if applicable)
+  workLists: z.array(WorkListSchema).describe("Liste over timelister knyttet til fakturaen"),
+
+  // Line items/products
+  lineItems: z.array(ProductSchema).nullable().describe("Liste over alle produkter eller tjenester på fakturaen, kan være null hvis ikke tilgjengelig"),
+
   // Invoice header details
   invoice: z.object({
     number: z.string().describe("Fakturanummer"),
@@ -49,9 +56,6 @@ export const InvoiceSchema = z.object({
     theirReference: z.string().nullable().describe("Deres referanse eller kontraktsnummer, kan være null hvis ikke tilgjengelig")
   }),
   
-  // Line items/products
-  lineItems: z.array(ProductSchema).nullable().describe("Liste over alle produkter eller tjenester på fakturaen, kan være null hvis ikke tilgjengelig"),
-  
   // Totals and amounts
   totals: z.object({
     excludingMva: z.number().nullable().describe("Totalbeløp ekskl. MVA som desimaltall, kan være null hvis ikke tilgjengelig"),
@@ -72,10 +76,7 @@ export const InvoiceSchema = z.object({
     phoneNumber: z.string().nullable().describe("Telefonnummer til avsender, kan være null hvis ikke tilgjengelig"),
     email: z.string().nullable().describe("E-postadresse til avsender, kan være null hvis ikke tilgjengelig"),
     website: z.string().nullable().describe("Nettsted URL til avsender, kan være null hvis ikke tilgjengelig")
-  }),
-  
-  // Related time lists (if applicable)
-  workLists: z.array(WorkListSchema).describe("Liste over timelister knyttet til fakturaen")
+  })
 });
 
 // BBox Annotation response formats
