@@ -3,6 +3,7 @@ import { basename } from "node:path";
 import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
 
+import { getMaxPagesPerChunk, processAlreadyProcessedFiles } from "./config.js";
 import { base64Ocr } from "./lib/mistral-ocr.js";
 import { createDirectoryIfNotExists, fileExists } from "./lib/output-fns.js";
 import { chunkPdf } from "./lib/pdf-fns.js";
@@ -18,7 +19,8 @@ createDirectoryIfNotExists(invoicePath);
 createDirectoryIfNotExists(chunkedInvoiceDir);
 createDirectoryIfNotExists(ocrOutputDir);
 
-const PROCESS_ALREADY_PROCESSED_FILES: boolean = process.env.OCR_PROCESS_ALREADY_PROCESSED_FILES?.toLowerCase() === "true";
+const MAX_PAGES_PER_CHUNK: number = getMaxPagesPerChunk();
+const PROCESS_ALREADY_PROCESSED_FILES: boolean = processAlreadyProcessedFiles();
 
 const pdfs: Dirent[] = readdirSync(invoicePath, { recursive: false, withFileTypes: true }).filter(
   (f: Dirent) => f.isFile() && f.name.toLowerCase().endsWith(".pdf")
@@ -33,8 +35,8 @@ for (const pdf of pdfs) {
 
   // PDF handling
   logger.info("Processing file");
-  const chunkedFilePaths: string[] = await chunkPdf(pdfPath, chunkedInvoiceDir, 4, false);
-  logger.info("Is file chunked? {IsChunked}. Chunks: {@Chunks}", chunkedFilePaths.length > 1, chunkedFilePaths);
+  const chunkedFilePaths: string[] = await chunkPdf(pdfPath, chunkedInvoiceDir, MAX_PAGES_PER_CHUNK, false);
+  logger.info("Is file chunked? {IsChunked}. Chunks: {ChunkLength}", chunkedFilePaths.length > 1, chunkedFilePaths.length);
 
   // OCR handling
   for (let i: number = 0; i < chunkedFilePaths.length; i++) {
