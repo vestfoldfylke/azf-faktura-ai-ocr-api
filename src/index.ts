@@ -37,9 +37,11 @@ for (const pdf of pdfs) {
   logger.info("Is file chunked? {IsChunked}. Chunks: {@Chunks}", chunkedFilePaths.length > 1, chunkedFilePaths);
 
   // OCR handling
-  let fileIndex = 1;
-  for (const filePath of chunkedFilePaths) {
-    const outputResponseFilePath = `${ocrOutputDir}/${basename(filePath, ".pdf")}.json`;
+  for (let i: number = 0; i < chunkedFilePaths.length; i++) {
+    const filePath: string = chunkedFilePaths[i];
+    const fileIndex: number = i + 1;
+    const outputResponseFilePath: string = `${ocrOutputDir}/${basename(filePath, ".pdf")}.json`;
+
     if (fileExists(outputResponseFilePath)) {
       if (!PROCESS_ALREADY_PROCESSED_FILES) {
         logger.info(
@@ -48,7 +50,6 @@ for (const pdf of pdfs) {
           chunkedFilePaths.length,
           outputResponseFilePath
         );
-        fileIndex++;
         continue;
       }
 
@@ -60,8 +61,8 @@ for (const pdf of pdfs) {
       );
     }
 
-    const startTime = Date.now();
-    logger.info("[{FileIndex} / {FileLength}] :: OCR processing file", fileIndex++, chunkedFilePaths.length);
+    const startTime: number = Date.now();
+    logger.info("[{FileIndex} / {FileLength}] :: OCR processing file", fileIndex, chunkedFilePaths.length);
 
     const base64Data: string = readFileSync(filePath, { encoding: "base64" });
     const response: OCRResponse | null = await base64Ocr(base64Data, {
@@ -84,13 +85,12 @@ for (const pdf of pdfs) {
       writeFileSync(outputDocumentAnnotationFilePath, JSON.stringify(JSON.parse(response.documentAnnotation), null, 2));
     }
 
-    const endTime = Date.now();
+    const endTime: number = Date.now();
     logger.info(
       "OCR completed in {Duration} ms. Output response written to '{OutputResponseFilePath}'. Output document annotation written to '{OutputDocumentAnnotationFilePath}'",
       endTime - startTime,
       outputResponseFilePath,
       outputDocumentAnnotationFilePath
     );
-    fileIndex++;
   }
 }
