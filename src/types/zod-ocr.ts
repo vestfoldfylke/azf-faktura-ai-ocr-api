@@ -26,12 +26,21 @@ const WorkListSchema = z.object({
   employee: z.string().describe("Navn på ansatt eller kontraktør som utførte arbeidet"),
   project: z.string().describe("Prosjektnavn, prosjektnummer eller prosjektbeskrivelse knyttet til arbeidet"),
   activity: z.string().describe("Type aktivitet eller arbeidsbeskrivelse"),
-  period: z.string().describe("Tidsperiode for arbeidet, 'HH:mm - HH:mm'"),
+  fromPeriod: z
+    .string()
+    .describe(
+      "Starttidsperiode for arbeidet, 'HH:mm'. Hvis arbeidet startet på hel time, settes minuttene til '00'. Hvis minuttene ikke er tilgjengelig, settes denne til 'HH:00'"
+    ),
+  toPeriod: z
+    .string()
+    .describe(
+      "Sluttidsperiode for arbeidet, 'HH:mm'. Hvis arbeidet sluttet på hel time, settes minuttene til '00'. Hvis minuttene ikke er tilgjengelig, settes denne til 'HH:00'"
+    ),
   fromDate: z.string().describe("Startdato for arbeidsperioden i format DD.MM.YYYY, basert på dato-feltet når arbeidet startet"),
   toDate: z
     .string()
     .describe(
-      "Sluttdato for arbeidsperioden i format DD.MM.YYYY. Samme som fromDate hvis arbeidet ble utført innenfor samme dag. Hvis sluttiden går over midnatt, settes denne til neste dag."
+      "Sluttdato for arbeidsperioden i format DD.MM.YYYY, basert på dato-feltet når arbeidet startet. Hvis sluttiden går over midnatt (00:00), settes denne til neste dag."
     ),
   payType: z.string().describe("Lønnsart eller lønnskode knyttet til arbeidet"),
   extras: z.string().nullable().describe("Tilleggskoder og beskrivelse av tillegg, kan være null hvis ikke tilgjengelig"),
