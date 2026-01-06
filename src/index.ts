@@ -90,13 +90,13 @@ for (const pdf of pdfs) {
 
     const endTime: number = Date.now();
     logger.info(
-      "OCR completed in {Duration} ms. Output response written to '{OutputResponseFilePath}'. Output document annotation written to '{OutputDocumentAnnotationFilePath}'",
-      endTime - startTime,
+      "OCR completed in {Duration} s. Output response written to '{OutputResponseFilePath}'. Output document annotation written to '{OutputDocumentAnnotationFilePath}'",
+      (endTime - startTime) / 1000,
       outputResponseFilePath,
       outputDocumentAnnotationFilePath
     );
   }
 
   const ocrEndTime: number = Date.now();
-  logger.info("OCR processing for {ChunkLength} file(s) completed in {Duration} ms", chunkedFilePaths.length, ocrEndTime - ocrStartTime);
+  logger.info("OCR processing for {ChunkLength} file(s) completed in {Duration} s", chunkedFilePaths.length, (ocrEndTime - ocrStartTime) / 1000);
 }
