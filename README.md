@@ -27,6 +27,8 @@ npm install
 Create a `.env` file in the project root with your Mistral API key:
 ```bash
 MISTRAL_API_KEY="MISTRAL_API_KEY_HERE"
+MISTRAL_MAX_PAGES_PER_CHUNK=4
+OCR_PROCESS_ALREADY_PROCESSED_FILES="false"
 ```
 
 ### 3. Required Folders
