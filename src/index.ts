@@ -39,6 +39,7 @@ for (const pdf of pdfs) {
   logger.info("Is file chunked? {IsChunked}. Chunks: {ChunkLength}", chunkedFilePaths.length > 1, chunkedFilePaths.length);
 
   // OCR handling
+  const ocrStartTime: number = Date.now();
   for (let i: number = 0; i < chunkedFilePaths.length; i++) {
     const filePath: string = chunkedFilePaths[i];
     const fileIndex: number = i + 1;
@@ -95,4 +96,7 @@ for (const pdf of pdfs) {
       outputDocumentAnnotationFilePath
     );
   }
+
+  const ocrEndTime: number = Date.now();
+  logger.info("OCR processing for {ChunkLength} file(s) completed in {Duration} ms", chunkedFilePaths.length, ocrEndTime - ocrStartTime);
 }
