@@ -101,10 +101,8 @@ __blobstorage__
 __queuestorage__
 __azurite_db*__.json
 
-input/
-input/*
-output/
-output/*
+input*/
+output*/
 
 # macOS system files
 .DS_Store

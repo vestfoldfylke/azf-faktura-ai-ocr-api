@@ -64,15 +64,22 @@ for (const pdf of pdfs) {
     logger.info("[{FileIndex} / {FileLength}] :: OCR processing file", fileIndex++, chunkedFilePaths.length);
 
     const base64Data: string = readFileSync(filePath, { encoding: "base64" });
-    const response: OCRResponse = await base64Ocr(base64Data, {
+    const response: OCRResponse | null = await base64Ocr(base64Data, {
       bboxAnnotationFormat: ImageSchema,
       documentAnnotationFormat: InvoiceSchema,
       includeImageBase64: false
     });
 
+    if (!response) {
+      logger.warn("OCR processing failed for file '{FilePath}'. Skipping", filePath);
+      continue;
+    }
+
     writeFileSync(outputResponseFilePath, JSON.stringify(response, null, 2));
 
-    const outputDocumentAnnotationFilePath = response.documentAnnotation ? `${ocrOutputDir}/${basename(filePath, ".pdf")}_da.json` : null;
+    const outputDocumentAnnotationFilePath: string | null = response.documentAnnotation
+      ? `${ocrOutputDir}/${basename(filePath, ".pdf")}_da.json`
+      : null;
     if (outputDocumentAnnotationFilePath) {
       writeFileSync(outputDocumentAnnotationFilePath, JSON.stringify(JSON.parse(response.documentAnnotation), null, 2));
     }

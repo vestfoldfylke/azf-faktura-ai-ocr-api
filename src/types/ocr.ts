@@ -1,12 +1,12 @@
-import type { ZodObject } from "zod";
+import type { ZodObject, ZodRawShape } from "zod";
 
-export type OcrRequestOptions = {
+export type ZodObjectAnyShape = ZodObject<ZodRawShape>;
+
+export type OcrRequestOptions<B extends ZodObjectAnyShape, D extends ZodObjectAnyShape> = {
   /** ZodObject used for Image annotation */
-  // biome-ignore lint/suspicious/noExplicitAny: any needed for ZodObject typing...
-  bboxAnnotationFormat?: ZodObject<any, any>;
+  bboxAnnotationFormat?: B;
   /** ZodObject used for Document annotation */
-  // biome-ignore lint/suspicious/noExplicitAny: any needed for ZodObject typing...
-  documentAnnotationFormat?: ZodObject<any, any>;
+  documentAnnotationFormat?: D;
   imageLimit?: number;
   imageMinSize?: number;
   includeImageBase64?: boolean;
