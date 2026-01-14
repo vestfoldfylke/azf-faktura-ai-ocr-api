@@ -10,6 +10,46 @@ import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemL
 import { base64Ocr } from "./mistral-ocr.js";
 import { insertWorkItems } from "./mongodb-fns.js";
 
+const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexInChunk: number): number => {
+  return (pdfChunk - 1) * maxPagesPerChunk + pageIndexInChunk;
+}
+
+const getTotalHours = (workItem: WorkItem): number => {
+  const totalHours: number = parseFloat((workItem.total || workItem.machineHours || "0").replace(",", "."));
+  if (totalHours < 100) {
+    logger.debug("{WorkItemId} - Total hours parsed directly: {TotalHours}", workItem.id, totalHours);
+    return totalHours;
+  }
+
+  const fromDateParts: string[] = workItem.fromDate.split("."); // DD.MM.YYYY
+  const fromTimeParts: string[] = workItem.fromPeriod.split(":"); // HH:mm
+  const toDateParts: string[] = workItem.toDate.split("."); // DD.MM.YYYY
+  const toTimeParts: string[] = workItem.toPeriod.split(":"); // HH:mm
+
+  const fromDate: Date = new Date(
+    parseInt(fromDateParts[2], 10),
+    parseInt(fromDateParts[1], 10) - 1,
+    parseInt(fromDateParts[0], 10),
+    parseInt(fromTimeParts[0], 10),
+    parseInt(fromTimeParts[1], 10)
+  );
+
+  const toDate: Date = new Date(
+    parseInt(toDateParts[2], 10),
+    parseInt(toDateParts[1], 10) - 1,
+    parseInt(toDateParts[0], 10),
+    parseInt(toTimeParts[0], 10),
+    parseInt(toTimeParts[1], 10)
+  );
+
+  const diffMs: number = toDate.getTime() - fromDate.getTime();
+  const diffHours: number = diffMs / (1000 * 60 * 60);
+  const totalHoursParsed: number = parseFloat(diffHours.toFixed(2));
+
+  logger.debug("{WorkItemId} - Total hours parsed from DateTime since total hours from OCR is most likely wrong: TotalHoursOcr: {TotalHoursOcr}, TotalHoursParsed: {TotalHoursParsed}, {FromDate} <--> {ToDate}", workItem.id, totalHours, totalHoursParsed, fromDate.toISOString(), toDate.toISOString());
+  return totalHoursParsed;
+}
+
 export const handleOcrChunk = async (filePath: string, outputResponseFilePath: string, ocrOutputDir: string): Promise<Invoice | null> => {
   const startTime: number = Date.now();
   logger.info("OCR processing file");
@@ -56,10 +96,6 @@ export const handleOcrChunk = async (filePath: string, outputResponseFilePath: s
   return parsedInvoice.data;
 };
 
-const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexInChunk: number): number => {
-  return (pdfChunk - 1) * maxPagesPerChunk + pageIndexInChunk;
-}
-
 export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: string, pdfChunk: number, maxPagesPerChunk: number): Promise<void> => {
   if (invoice.length === 0) {
     logger.info("No work items found in document annotation.");
@@ -86,7 +122,7 @@ export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: 
       project: workItem.project,
       toDate: workItem.toDate,
       toPeriod: workItem.toPeriod,
-      totalHour: parseFloat((workItem.total || workItem.machineHours || "0").replace(",", "."))
+      totalHour: getTotalHours(workItem)
     });
 
     if (!dbWorkItem.success) {
@@ -106,12 +142,13 @@ export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: 
 
     if (workItemIdFailedList.includes(workItem.id)) {
       logger.error(
-        "From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee})",
+        "{WorkItemId} - From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee})",
+        workItem.id,
         workItem.fromDate,
         workItem.fromPeriod,
         workItem.toDate,
         workItem.toPeriod,
-        workItem.total,
+        workItem.total || workItem.machineHours || "0",
         workItem.employee
       );
       continue;
@@ -121,24 +158,27 @@ export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: 
     const workItemMongo: WorkItemMongo | undefined = workItemMongoList.find((wim: WorkItemMongo) => wim.id === workItem.id);
     if (!workItemMongo) {
       logger.error(
-        "WorkItem from workItemMongoList not found... From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee})",
+        "WorkItem with WorkItemId {WorkItemId} from workItemMongoList not found... From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee})",
+        workItem.id,
         workItem.fromDate,
         workItem.fromPeriod,
         workItem.toDate,
         workItem.toPeriod,
-        workItem.total,
+        workItem.total || workItem.machineHours || "0",
         workItem.employee
       );
       continue;
     }
 
-    logger.debug(
-      "From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee}) :: {InsertedId} :: Chunk: {PdfChunk} PageInChunk: {PdfChunkPageNumber} OriginalPageNumber: {PdfOriginalPageNumber}",
+    logger.info(
+      "{WorkItemId} - From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} (OcrHours: {Hours}, ParsedHours: {ParsedHours}) ({Employee}) :: {InsertedId} :: Chunk: {PdfChunk} PageInChunk: {PdfChunkPageNumber} OriginalPageNumber: {PdfOriginalPageNumber}",
+      workItem.id,
       workItem.fromDate,
       workItem.fromPeriod,
       workItem.toDate,
       workItem.toPeriod,
-      workItem.total,
+      workItem.total || workItem.machineHours || "0",
+      workItemMongo.totalHour,
       workItem.employee,
       insertedId,
       workItemMongo.pdfChunk,
