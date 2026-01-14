@@ -1,14 +1,14 @@
-import { type Dirent, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { type Dirent, readdirSync } from "node:fs";
 import { basename } from "node:path";
-import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { getMaxPagesPerChunk, processAlreadyProcessedFiles } from "./config.js";
-import { base64Ocr } from "./lib/mistral-ocr.js";
+import { handleOcrChunk, insertWorkItemsToDb } from "./lib/chunk-handler.js";
+import { closeDatabaseConnection } from "./lib/mongodb-fns.js";
 import { createDirectoryIfNotExists, fileExists } from "./lib/output-fns.js";
 import { chunkPdf } from "./lib/pdf-fns.js";
 
-import { ImageSchema, InvoiceSchema } from "./types/zod-ocr.js";
+import type { Invoice } from "./types/zod-ocr.js";
 
 const invoicePath: string = "./input";
 const outputPath: string = "./output";
@@ -28,75 +28,65 @@ const pdfs: Dirent[] = readdirSync(invoicePath, { recursive: false, withFileType
 
 for (const pdf of pdfs) {
   const pdfPath = `${pdf.parentPath}/${pdf.name}`;
+  let invoiceNumber: string | null = pdf.name.indexOf("_") > -1 ? pdf.name.substring(0, pdf.name.indexOf("_")) : null;
 
   logger.logConfig({
     prefix: pdfPath
   });
 
   // PDF handling
-  logger.info("Processing file");
+  logger.info("Processing PDF file");
   const chunkedFilePaths: string[] = await chunkPdf(pdfPath, chunkedInvoiceDir, MAX_PAGES_PER_CHUNK, false);
   logger.info("Is file chunked? {IsChunked}. Chunks: {ChunkLength}", chunkedFilePaths.length > 1, chunkedFilePaths.length);
 
-  // OCR handling
-  const ocrStartTime: number = Date.now();
+  // chunk handling
+  const chunkStartTime: number = Date.now();
   for (let i: number = 0; i < chunkedFilePaths.length; i++) {
     const filePath: string = chunkedFilePaths[i];
     const fileIndex: number = i + 1;
     const outputResponseFilePath: string = `${ocrOutputDir}/${basename(filePath, ".pdf")}.json`;
 
+    logger.logConfig({
+      prefix: `${pdfPath} - ${basename(filePath)} - [${fileIndex} / ${chunkedFilePaths.length}]`
+    });
+
     if (fileExists(outputResponseFilePath)) {
       if (!PROCESS_ALREADY_PROCESSED_FILES) {
-        logger.info(
-          "[{FileIndex} / {FileLength}] :: OCR output file '{OutputResponseFilePath}' already exists. Skipping OCR processing for this file.",
-          fileIndex,
-          chunkedFilePaths.length,
-          outputResponseFilePath
-        );
+        logger.info("OCR output file '{OutputResponseFilePath}' already exists. Skipping OCR processing for this file.", outputResponseFilePath);
         continue;
       }
 
-      logger.info(
-        "[{FileIndex} / {FileLength}] :: OCR output file '{OutputResponseFilePath}' already exists. File will be processed again",
-        fileIndex,
-        chunkedFilePaths.length,
-        outputResponseFilePath
-      );
+      logger.info("OCR output file '{OutputResponseFilePath}' already exists. File will be processed again", outputResponseFilePath);
     }
 
-    const startTime: number = Date.now();
-    logger.info("[{FileIndex} / {FileLength}] :: OCR processing file", fileIndex, chunkedFilePaths.length);
-
-    const base64Data: string = readFileSync(filePath, { encoding: "base64" });
-    const response: OCRResponse | null = await base64Ocr(base64Data, {
-      bboxAnnotationFormat: ImageSchema,
-      documentAnnotationFormat: InvoiceSchema,
-      includeImageBase64: false
-    });
-
-    if (!response) {
-      logger.warn("OCR processing failed for file '{FilePath}'. Skipping", filePath);
+    const invoiceResponse: Invoice | null = await handleOcrChunk(filePath, outputResponseFilePath, ocrOutputDir);
+    if (!invoiceResponse) {
       continue;
     }
 
-    writeFileSync(outputResponseFilePath, JSON.stringify(response, null, 2));
+    if (!invoiceNumber && i === 0) {
+      invoiceNumber = invoiceResponse.invoice.number;
 
-    const outputDocumentAnnotationFilePath: string | null = response.documentAnnotation
-      ? `${ocrOutputDir}/${basename(filePath, ".pdf")}_da.json`
-      : null;
-    if (outputDocumentAnnotationFilePath) {
-      writeFileSync(outputDocumentAnnotationFilePath, JSON.stringify(JSON.parse(response.documentAnnotation), null, 2));
+      if (!invoiceNumber) {
+        logger.error("No invoice number found from file name, and OCR did not find an invoice number on extraction. What to do?");
+      } else {
+        logger.info("Invoice number '{InvoiceNumber}' extracted from OCR of first chunk", invoiceNumber);
+      }
     }
 
-    const endTime: number = Date.now();
-    logger.info(
-      "OCR completed in {Duration} s. Output response written to '{OutputResponseFilePath}'. Output document annotation written to '{OutputDocumentAnnotationFilePath}'",
-      (endTime - startTime) / 1000,
-      outputResponseFilePath,
-      outputDocumentAnnotationFilePath
-    );
+    await insertWorkItemsToDb(invoiceResponse.workLists, invoiceNumber, i + 1, MAX_PAGES_PER_CHUNK);
   }
 
-  const ocrEndTime: number = Date.now();
-  logger.info("OCR processing for {ChunkLength} file(s) completed in {Duration} s", chunkedFilePaths.length, (ocrEndTime - ocrStartTime) / 1000);
+  logger.logConfig({
+    prefix: pdfPath
+  });
+
+  const chunkEndTime: number = Date.now();
+  logger.info(
+    "Chunk processing for {ChunkLength} file(s) completed in {Duration} minutes",
+    chunkedFilePaths.length,
+    (chunkEndTime - chunkStartTime) / 1000 / 60
+  );
+
+  await closeDatabaseConnection();
 }
