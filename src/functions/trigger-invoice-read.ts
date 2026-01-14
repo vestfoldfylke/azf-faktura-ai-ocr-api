@@ -1,6 +1,6 @@
-import { Dirent, readdirSync } from "node:fs";
+import { type Dirent, readdirSync } from "node:fs";
 import { basename } from "node:path";
-import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
+import { app, type HttpRequest, type HttpResponseInit, type InvocationContext } from "@azure/functions";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { getMaxPagesPerChunk, processAlreadyProcessedFiles } from "../config.js";
@@ -10,7 +10,7 @@ import { closeDatabaseConnection } from "../lib/mongodb-fns.js";
 import { createDirectoryIfNotExists, fileExists } from "../lib/output-fns.js";
 import { chunkPdf } from "../lib/pdf-fns.js";
 
-import { Invoice } from "../types/zod-ocr.js";
+import type { Invoice } from "../types/zod-ocr.js";
 
 const invoicePath: string = "./input";
 const outputPath: string = "./output";
@@ -20,13 +20,17 @@ const ocrOutputDir: string = `${outputPath}/ocr`;
 const MAX_PAGES_PER_CHUNK: number = getMaxPagesPerChunk();
 const PROCESS_ALREADY_PROCESSED_FILES: boolean = processAlreadyProcessedFiles();
 
-logger.info("Invoice read trigger initialized with max pages per chunk: {MaxPagesPerChunk} and process already processed files: {ProcessAlreadyProcessedFiles}", MAX_PAGES_PER_CHUNK, PROCESS_ALREADY_PROCESSED_FILES);
+logger.info(
+  "Invoice read trigger initialized with max pages per chunk: {MaxPagesPerChunk} and process already processed files: {ProcessAlreadyProcessedFiles}",
+  MAX_PAGES_PER_CHUNK,
+  PROCESS_ALREADY_PROCESSED_FILES
+);
 
 const triggerInvoiceRead = async (_request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> => {
   createDirectoryIfNotExists(invoicePath);
   createDirectoryIfNotExists(chunkedInvoiceDir);
   createDirectoryIfNotExists(ocrOutputDir);
-  
+
   const pdfs: Dirent[] = readdirSync(invoicePath, { recursive: false, withFileTypes: true }).filter(
     (f: Dirent) => f.isFile() && f.name.toLowerCase().endsWith(".pdf")
   );
@@ -95,14 +99,14 @@ const triggerInvoiceRead = async (_request: HttpRequest, _context: InvocationCon
 
     await closeDatabaseConnection();
   }
-  
+
   return {
     status: 200,
     body: "Invoice read trigger completed."
   };
 };
 
-app.http('triggerInvoiceRead', {
+app.http("triggerInvoiceRead", {
   methods: ["GET"],
   authLevel: "function",
   handler: triggerInvoiceRead
