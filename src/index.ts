@@ -8,7 +8,7 @@ import { closeDatabaseConnection } from "./lib/mongodb-fns.js";
 import { createDirectoryIfNotExists, fileExists } from "./lib/output-fns.js";
 import { chunkPdf } from "./lib/pdf-fns.js";
 
-import { Invoice } from "./types/zod-ocr.js";
+import type { Invoice } from "./types/zod-ocr.js";
 
 const invoicePath: string = "./input";
 const outputPath: string = "./output";
@@ -28,9 +28,7 @@ const pdfs: Dirent[] = readdirSync(invoicePath, { recursive: false, withFileType
 
 for (const pdf of pdfs) {
   const pdfPath = `${pdf.parentPath}/${pdf.name}`;
-  let invoiceNumber: string | null = pdf.name.indexOf("_") > -1
-    ? pdf.name.substring(0, pdf.name.indexOf("_"))
-    : null;
+  let invoiceNumber: string | null = pdf.name.indexOf("_") > -1 ? pdf.name.substring(0, pdf.name.indexOf("_")) : null;
 
   logger.logConfig({
     prefix: pdfPath
@@ -89,6 +87,6 @@ for (const pdf of pdfs) {
     chunkedFilePaths.length,
     (chunkEndTime - chunkStartTime) / 1000 / 60
   );
-  
+
   await closeDatabaseConnection();
 }

@@ -4,7 +4,11 @@ import { z } from "zod";
 const ProductSchema = z.object({
   productNumber: z.string().describe("Produktnummer eller produktkode, SKAL være en tom streng hvis ikke tilgjengelig"),
   description: z.string().describe("Beskrivelse av produktet eller tjenesten, SKAL være en tom streng hvis ikke tilgjengelig"),
-  quantity: z.string().describe("Antall enheter av produktet eller tjenesten som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
+  quantity: z
+    .string()
+    .describe(
+      "Antall enheter av produktet eller tjenesten som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"
+    ),
   unit: z.string().describe("Enhet for mengde, f.eks. 'stk', 'kg', SKAL være en tom streng hvis ikke tilgjengelig"),
   unitPrice: z
     .string()
@@ -42,10 +46,18 @@ export const WorkItemSchema = z
       ),
     payType: z.string().nullable().describe("Lønnsart eller lønnskode knyttet til arbeidet"),
     extras: z.string().describe("Tilleggskoder og beskrivelse av tillegg, SKAL være en tom streng hvis ikke tilgjengelig"),
-    total: z.string().describe("Timer brukt totalt på arbeidsoppføringen, som desimaltall, bruk punktum som desimalskilletegn. Vil aldri være urimelig høyt. Alltid lavere enn 100. SKAL være en tom streng hvis ikke tilgjengelig"),
-    machineHours: z.string().describe("Maskintimer med utstyrskoder brukt, som desimaltall, bruk punktum som desimalskilletegn. Vil aldri være urimelig høyt. Alltid lavere enn 100. SKAL være en tom streng hvis ikke tilgjengelig"),
+    total: z
+      .string()
+      .describe(
+        "Timer brukt totalt på arbeidsoppføringen, som desimaltall, bruk punktum som desimalskilletegn. Vil aldri være urimelig høyt. Alltid lavere enn 100. SKAL være en tom streng hvis ikke tilgjengelig"
+      ),
+    machineHours: z
+      .string()
+      .describe(
+        "Maskintimer med utstyrskoder brukt, som desimaltall, bruk punktum som desimalskilletegn. Vil aldri være urimelig høyt. Alltid lavere enn 100. SKAL være en tom streng hvis ikke tilgjengelig"
+      ),
     // NOTE: Disabled comments since on some invoices where the column height in some rows are different, makes the OCR read fewer lines...
-/*    comments: z
+    /*    comments: z
       .string()
       .describe("Eventuelle kommentarer eller notater knyttet til arbeidsoppføringen, SKAL være en tom streng hvis ikke tilgjengelig"),*/
     pageNumber: z.number().describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet"),
@@ -57,7 +69,9 @@ const WorkItemListSchema = z.array(WorkItemSchema);
 
 export const InvoiceSchema = z.object({
   // Related time lists (if applicable)
-  workLists: z.array(WorkItemSchema).describe("Liste over timelister knyttet til fakturaen. Denne skal være et tomt array hvis ingen timelister er funnet."),
+  workLists: z
+    .array(WorkItemSchema)
+    .describe("Liste over timelister knyttet til fakturaen. Denne skal være et tomt array hvis ingen timelister er funnet."),
 
   // Line items/products
   lineItems: z
@@ -99,9 +113,15 @@ export const InvoiceSchema = z.object({
   // Totals and amounts
   totals: z
     .object({
-      excludingMva: z.string().describe("Totalbeløp ekskl. MVA som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
-      mvaAmount: z.string().describe("Total MVA-beløp som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
-      includingMva: z.string().describe("Totalbeløp inkl. MVA som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig")
+      excludingMva: z
+        .string()
+        .describe("Totalbeløp ekskl. MVA som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
+      mvaAmount: z
+        .string()
+        .describe("Total MVA-beløp som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
+      includingMva: z
+        .string()
+        .describe("Totalbeløp inkl. MVA som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig")
     })
     .nullable()
     .describe("Denne skal KUN opprettes når minimum ett felt er tilstede i OCR-resultatet."),

@@ -4,7 +4,7 @@ import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
 import type { ZodSafeParseResult } from "zod";
 
-import { WorkItemMongo, WorkItemMongoSchema } from "../types/zod-mongo.js";
+import { type WorkItemMongo, WorkItemMongoSchema } from "../types/zod-mongo.js";
 import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
 import { base64Ocr } from "./mistral-ocr.js";
@@ -12,7 +12,7 @@ import { insertWorkItems } from "./mongodb-fns.js";
 
 const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexInChunk: number): number => {
   return (pdfChunk - 1) * maxPagesPerChunk + pageIndexInChunk;
-}
+};
 
 const getTotalHours = (workItem: WorkItem): number => {
   const totalHours: number = parseFloat((workItem.total || workItem.machineHours || "0").replace(",", "."));
@@ -46,9 +46,16 @@ const getTotalHours = (workItem: WorkItem): number => {
   const diffHours: number = diffMs / (1000 * 60 * 60);
   const totalHoursParsed: number = parseFloat(diffHours.toFixed(2));
 
-  logger.debug("{WorkItemId} - Total hours parsed from DateTime since total hours from OCR is most likely wrong: TotalHoursOcr: {TotalHoursOcr}, TotalHoursParsed: {TotalHoursParsed}, {FromDate} <--> {ToDate}", workItem.id, totalHours, totalHoursParsed, fromDate.toISOString(), toDate.toISOString());
+  logger.debug(
+    "{WorkItemId} - Total hours parsed from DateTime since total hours from OCR is most likely wrong: TotalHoursOcr: {TotalHoursOcr}, TotalHoursParsed: {TotalHoursParsed}, {FromDate} <--> {ToDate}",
+    workItem.id,
+    totalHours,
+    totalHoursParsed,
+    fromDate.toISOString(),
+    toDate.toISOString()
+  );
   return totalHoursParsed;
-}
+};
 
 export const handleOcrChunk = async (filePath: string, outputResponseFilePath: string, ocrOutputDir: string): Promise<Invoice | null> => {
   const startTime: number = Date.now();
@@ -96,7 +103,12 @@ export const handleOcrChunk = async (filePath: string, outputResponseFilePath: s
   return parsedInvoice.data;
 };
 
-export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: string, pdfChunk: number, maxPagesPerChunk: number): Promise<void> => {
+export const insertWorkItemsToDb = async (
+  invoice: WorkItemList,
+  invoiceNumber: string,
+  pdfChunk: number,
+  maxPagesPerChunk: number
+): Promise<void> => {
   if (invoice.length === 0) {
     logger.info("No work items found in document annotation.");
     return;
@@ -126,7 +138,12 @@ export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: 
     });
 
     if (!dbWorkItem.success) {
-      logger.errorException(dbWorkItem.error, "Failed to parse WorkItem with id {WorkItemId} into WorkItemMongo. Skipping preparation for work item: {@WorkItem}", workItem.id, workItem);
+      logger.errorException(
+        dbWorkItem.error,
+        "Failed to parse WorkItem with id {WorkItemId} into WorkItemMongo. Skipping preparation for work item: {@WorkItem}",
+        workItem.id,
+        workItem
+      );
       workItemIdFailedList.push(workItem.id);
       return;
     }
@@ -135,8 +152,8 @@ export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: 
   });
 
   logger.info("Prepared {WorkItemsLength} work items for database insertion.", workItemMongoList.length);
-  const insertedIds: string[] | void = await insertWorkItems(workItemMongoList);
-  
+  const insertedIds: string[] = await insertWorkItems(workItemMongoList);
+
   for (let i: number = 0; i < invoice.length; i++) {
     const workItem: WorkItem = invoice[i];
 
@@ -154,7 +171,7 @@ export const insertWorkItemsToDb = async (invoice: WorkItemList, invoiceNumber: 
       continue;
     }
 
-    const insertedId: string = insertedIds && insertedIds[i] ? insertedIds[i] : "N/A";
+    const insertedId: string = insertedIds?.[i] ? insertedIds[i] : "N/A";
     const workItemMongo: WorkItemMongo | undefined = workItemMongoList.find((wim: WorkItemMongo) => wim.id === workItem.id);
     if (!workItemMongo) {
       logger.error(

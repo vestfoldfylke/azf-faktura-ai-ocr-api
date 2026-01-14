@@ -1,9 +1,9 @@
 import { logger } from "@vestfoldfylke/loglady";
-import { Collection, InsertManyResult, MongoClient, ObjectId } from "mongodb";
+import { type Collection, type InsertManyResult, MongoClient, type ObjectId } from "mongodb";
 
 import { getMongoDbCollectionName, getMongoDbConnectionString, getMongoDbDatabaseName } from "../config.js";
 
-import { WorkItemMongo } from "../types/zod-mongo";
+import type { WorkItemMongo } from "../types/zod-mongo";
 
 let mongoClient: MongoClient | null = null;
 
@@ -18,16 +18,16 @@ export const closeDatabaseConnection = async (): Promise<void> => {
   } catch (error) {
     logger.errorException(error, "Error occurred while closing MongoDB connection");
   }
-}
+};
 
-export const insertWorkItems = async (workItems: WorkItemMongo[]): Promise<string[] | void> => {
+export const insertWorkItems = async (workItems: WorkItemMongo[]): Promise<string[]> => {
   const collectionName: string = getMongoDbCollectionName();
   const dbName: string = getMongoDbDatabaseName();
 
   const client: MongoClient | null = await getMongoClient();
   if (!client) {
     logger.error("MongoDB client is not available. Cannot insert work item.");
-    return;
+    return [];
   }
 
   try {
@@ -38,7 +38,12 @@ export const insertWorkItems = async (workItems: WorkItemMongo[]): Promise<strin
       const insertedIds: string[] = Object.values(result.insertedIds).map((id: ObjectId) => id.toHexString());
 
       if (result.insertedCount !== workItems.length) {
-        logger.warn("Inserted count {InsertedCount} does not match work items length {WorkItemsLength} into collection '{CollectionName}'", result.insertedCount, workItems.length, collectionName);
+        logger.warn(
+          "Inserted count {InsertedCount} does not match work items length {WorkItemsLength} into collection '{CollectionName}'",
+          result.insertedCount,
+          workItems.length,
+          collectionName
+        );
         return insertedIds;
       }
 
@@ -48,14 +53,21 @@ export const insertWorkItems = async (workItems: WorkItemMongo[]): Promise<strin
 
     logger.error("Failed to insert {WorkItemsLength} work items into collection '{CollectionName}'", workItems.length, collectionName);
   } catch (error) {
-    logger.errorException(error, "Error occurred while inserting {WorkItemsLength} work items into collection '{CollectionName}'", workItems.length, collectionName);
+    logger.errorException(
+      error,
+      "Error occurred while inserting {WorkItemsLength} work items into collection '{CollectionName}'",
+      workItems.length,
+      collectionName
+    );
+
+    return [];
   }
-}
+};
 
 const getMongoClient = async (): Promise<MongoClient | null> => {
   if (mongoClient) {
     try {
-      await mongoClient.connect()
+      await mongoClient.connect();
       logger.info("Successfully connected to already existing MongoDB instance");
       return mongoClient;
     } catch (error) {
@@ -75,4 +87,4 @@ const getMongoClient = async (): Promise<MongoClient | null> => {
     logger.errorException(error, "Failed to create new MongoDB instance and/or connect to MongoDB");
     return null;
   }
-}
+};
