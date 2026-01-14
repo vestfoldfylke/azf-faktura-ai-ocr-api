@@ -29,6 +29,9 @@ Create a `.env` file in the project root with your Mistral API key:
 MISTRAL_API_KEY="MISTRAL_API_KEY_HERE"
 MISTRAL_MAX_PAGES_PER_CHUNK=4
 OCR_PROCESS_ALREADY_PROCESSED_FILES="false"
+MONGODB_CONNECTION_STRING="mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=faktura-oi-ocr-local"
+MONGODB_COLLECTION_NAME="<db_collection_name>"
+MONGODB_DATABASE_NAME="<db_name>"
 ```
 
 ### 3. Required Folders

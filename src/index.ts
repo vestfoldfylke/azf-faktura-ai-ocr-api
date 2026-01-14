@@ -3,9 +3,12 @@ import { basename } from "node:path";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { getMaxPagesPerChunk, processAlreadyProcessedFiles } from "./config.js";
-import { handleOcrChunk } from "./lib/chunk-handler.js";
+import { handleOcrChunk, insertWorkItemsToDb } from "./lib/chunk-handler.js";
+import { closeDatabaseConnection } from "./lib/mongodb-fns.js";
 import { createDirectoryIfNotExists, fileExists } from "./lib/output-fns.js";
 import { chunkPdf } from "./lib/pdf-fns.js";
+
+import { Invoice } from "./types/zod-ocr.js";
 
 const invoicePath: string = "./input";
 const outputPath: string = "./output";
@@ -25,6 +28,9 @@ const pdfs: Dirent[] = readdirSync(invoicePath, { recursive: false, withFileType
 
 for (const pdf of pdfs) {
   const pdfPath = `${pdf.parentPath}/${pdf.name}`;
+  let invoiceNumber: string | null = pdf.name.indexOf("_") > -1
+    ? pdf.name.substring(0, pdf.name.indexOf("_"))
+    : null;
 
   logger.logConfig({
     prefix: pdfPath
@@ -55,7 +61,22 @@ for (const pdf of pdfs) {
       logger.info("OCR output file '{OutputResponseFilePath}' already exists. File will be processed again", outputResponseFilePath);
     }
 
-    await handleOcrChunk(filePath, outputResponseFilePath, ocrOutputDir);
+    const invoiceResponse: Invoice | null = await handleOcrChunk(filePath, outputResponseFilePath, ocrOutputDir);
+    if (!invoiceResponse) {
+      continue;
+    }
+
+    if (!invoiceNumber && i === 0) {
+      invoiceNumber = invoiceResponse.invoice.number;
+
+      if (!invoiceNumber) {
+        logger.error("No invoice number found from file name, and OCR did not find an invoice number on extraction. What to do?");
+      } else {
+        logger.info("Invoice number '{InvoiceNumber}' extracted from OCR of first chunk", invoiceNumber);
+      }
+    }
+
+    await insertWorkItemsToDb(invoiceResponse.workLists, invoiceNumber, i + 1, MAX_PAGES_PER_CHUNK);
   }
 
   logger.logConfig({
@@ -68,4 +89,6 @@ for (const pdf of pdfs) {
     chunkedFilePaths.length,
     (chunkEndTime - chunkStartTime) / 1000 / 60
   );
+  
+  await closeDatabaseConnection();
 }
