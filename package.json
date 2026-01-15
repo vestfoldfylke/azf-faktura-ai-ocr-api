@@ -1,8 +1,8 @@
 {
-  "name": "faktura-ai-ocr",
+  "name": "azf-faktura-ai-ocr-api",
   "version": "1.0.0",
   "description": "Extract data from invoices using AI-powered OCR technology",
-  "main": "dist/src/index.js",
+  "main": "dist/src/functions/*.js",
   "type": "module",
   "scripts": {
     "lint": "biome check && tsc --noEmit --project tsconfig.json",
@@ -10,7 +10,7 @@
     "build": "tsc --project tsconfig.json",
     "clean": "rm -rf dist",
     "prestart": "npm run clean && npm run build",
-    "start": "node --enable-source-maps --env-file=.env dist/src/index.js",
+    "start": "func start",
     "test": "npm run lint && node --import tsx --test tests/**/*.test.ts"
   },
   "keywords": [
@@ -19,6 +19,13 @@
     "AI",
     "text-extraction"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vestfoldfylke/azf-faktura-ai-ocr-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vestfoldfylke/azf-faktura-ai-ocr-api/issues"
+  },
   "author": {
     "email": "rune.moskvil.lyngas@vestfoldfylke.no",
     "name": "Rune Moskvil Lyngås",
@@ -32,6 +39,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@azure/functions": "^4.11.0",
     "@mistralai/mistralai": "^1.10.0",
     "@vestfoldfylke/loglady": "^1.5.0",
     "mongodb": "^7.0.0",
