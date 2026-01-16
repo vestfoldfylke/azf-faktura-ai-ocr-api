@@ -64,6 +64,26 @@ export const insertWorkItems = async (workItems: WorkItemMongo[]): Promise<strin
   }
 };
 
+export const invoiceNumberExistsInDb = async (invoiceNumber: string): Promise<boolean> => {
+  const collectionName: string = getMongoDbCollectionName();
+  const dbName: string = getMongoDbDatabaseName();
+
+  const client: MongoClient | null = await getMongoClient();
+  if (!client) {
+    logger.error("MongoDB client is not available. Invoice number query not possible!");
+    throw new Error("MongoDB client is not available. Invoice number query not possible!");
+  }
+
+  try {
+    const clientCollection: Collection<WorkItemMongo> = client.db(dbName).collection<WorkItemMongo>(collectionName);
+    const itemsWithInvoiceNumber: number = await clientCollection.countDocuments({ invoiceNumber });
+    return itemsWithInvoiceNumber > 0;
+  } catch (error) {
+    logger.errorException(error, "Error occured while checking if work items for invoice number '{InvoiceNumber}' exists in database", invoiceNumber);
+    return false;
+  }
+};
+
 const getMongoClient = async (): Promise<MongoClient | null> => {
   if (mongoClient) {
     try {

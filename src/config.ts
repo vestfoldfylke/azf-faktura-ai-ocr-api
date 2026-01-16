@@ -1,3 +1,13 @@
+export const getBlobStorageContainerName = (): string => {
+  const containerName = process.env.BLOB_STORAGE_CONTAINER_NAME_QUEUE;
+
+  if (!containerName) {
+    throw new Error("BLOB_STORAGE_CONTAINER_NAME_QUEUE is not set in environment variables");
+  }
+
+  return containerName;
+};
+
 export const getMistralApiKey = (): string => {
   const apiKey = process.env.MISTRAL_API_KEY;
 
@@ -49,7 +59,8 @@ export const getMongoDbDatabaseName = (): string => {
 };
 
 /**
- * Determine whether to process files that have already been processed for OCR.<br />
+ * Determine whether to process invoices that have already been processed for OCR.<br />
+ * Requires that blob name has invoice number in the name followed by a `_` (Example: `1234567_` or `1234567_something..`). Otherwise, it needs to be OCR processed to find the invoice number anyway.<br />
  * Defaults to false if not set.
  */
-export const processAlreadyProcessedFiles = (): boolean => process.env.OCR_PROCESS_ALREADY_PROCESSED_FILES?.toLowerCase() === "true";
+export const processAlreadyProcessedInvoices = (): boolean => process.env.OCR_PROCESS_ALREADY_PROCESSED_FILES?.toLowerCase() === "true";

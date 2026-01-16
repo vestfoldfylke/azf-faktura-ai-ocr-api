@@ -1,4 +1,4 @@
-# faktura-ai-ocr
+# azf-faktura-ai-ocr-api
 
 A project that uses Mistral OCR to extract structured data from invoices and attachments.
 
@@ -9,6 +9,8 @@ This project uses Mistral AI's OCR model to automatically extract structured inf
 ## Prerequisites
 
 - Mistral AI API key [console.mistral.ai](https://console.mistral.ai)
+- MongoDB database
+- Storage account (Azure Blob Storage or local emulator like Azurite)
 
 ## Installation
 
@@ -24,23 +26,26 @@ npm install
 
 ### 2. Configure Environment Variables
 
-Create a `.env` file in the project root with your Mistral API key:
-```bash
-MISTRAL_API_KEY="MISTRAL_API_KEY_HERE"
-MISTRAL_MAX_PAGES_PER_CHUNK=4
-OCR_PROCESS_ALREADY_PROCESSED_FILES="false"
-MONGODB_CONNECTION_STRING="mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=faktura-oi-ocr-local"
-MONGODB_COLLECTION_NAME="<db_collection_name>"
-MONGODB_DATABASE_NAME="<db_name>"
+Create a `local.settings.json` file in the project root with the following content:
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "BLOB_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=key1;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;",
+    "BLOB_STORAGE_CONTAINER_NAME_QUEUE": "local",
+    "BLOB_STORAGE_CONTAINER_NAME_HANDLED": "handled-local",
+    "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
+    "MISTRAL_MAX_PAGES_PER_CHUNK": "4",
+    "OCR_PROCESS_ALREADY_PROCESSED_FILES": "false",
+    "MONGODB_CONNECTION_STRING": "mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=azf-faktura-ai-ocr-api-local",
+    "MONGODB_COLLECTION_NAME": "<db_collection_name>",
+    "MONGODB_DATABASE_NAME": "<db_name>",
+    "BETTERSTACK_MIN_LOG_LEVEL": "info"
+  }
+}
 ```
-
-### 3. Required Folders
-
-The project requires the following folder structure, and it will create them if they do not exist:
-- `input/` - Place your invoice PDF files here.
-- `output/` - Extracted data will be saved in folders here.
-- `output/chunks/` - PDF's to process will be stored here. Chunked or original.
-- `output/ocr/` - OCR results in JSON format will be saved here.
 
 ## Running the Project
 
@@ -48,10 +53,11 @@ The project requires the following folder structure, and it will create them if 
 npm run start
 ```
 
-- This will process all PDF files in the `input/` folder
+- This will process PDF files uploaded to the blob storage container `BLOB_STORAGE_CONTAINER_NAME_QUEUE`.
   - Split PDF
-    - If the PDF has less than or equal to the specified max page limit (default is 4), it will be copied to `output/chunks/` as is.
-    - If the PDF exceeds the max page limit, it will be split into chunks and saved in `output/chunks/`.
+    - If the PDF exceeds the max page limit, it will be split into chunks.
   - Each chunk or full PDF will be sent to Mistral for OCR processing
-    - The full result will be saved as `output/ocr/filename.json` or `output/ocr/filename_chunk_n.json`
-    - Document annotations will be saved as `output/ocr/filename_da.json` or `output/ocr/filename_chunk_n_da.json`
+    - Successfully parsed document annotations will be saved to blob storage container `BLOB_STORAGE_CONTAINER_NAME_HANDLED` as `finished/<invoiceNumber>/<blobName>_document_annotation.json` or `finished/<invoiceNumber>/<blobName>_chunk_n_document_annotation.json`
+    - Successfully parsed WorkItems will be saved to MongoDB.
+    - Documents failed to be processed by Mistral OCR OR document annotations from Mistral OCR that failed to be parsed, will be saved to blob storage container `BLOB_STORAGE_CONTAINER_NAME_HANDLED` as `failed/<blobName>.pdf`
+  - PDF from blob storage container `BLOB_STORAGE_CONTAINER_NAME_QUEUE` will be deleted after processing
