@@ -33,7 +33,7 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
           invoiceNumber,
           parsedInvoiceChunks: [],
           processedSuccessfully: true
-        }
+        };
       }
 
       logger.info(
@@ -55,8 +55,9 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
     invoiceNumber,
     parsedInvoiceChunks: [],
     processedSuccessfully: true
-  }
+  };
   const chunkStartTime: number = Date.now();
+
   for (let i: number = 0; i < chunkedParts.length; i++) {
     const chunkIndex: number = i + 1;
 

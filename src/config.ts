@@ -34,7 +34,7 @@ export const getBlobStorageInfo = (): BlobStorageInfo => {
     finishedFolderName,
     queueFolderName
   };
-}
+};
 
 export const getMistralApiKey = (): string => {
   const apiKey = process.env.MISTRAL_API_KEY;

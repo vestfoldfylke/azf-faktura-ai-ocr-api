@@ -39,7 +39,10 @@ const triggerInvoiceRead = async (blob: Buffer, context: InvocationContext): Pro
         logger.info("OCR result for invoice number: {InvoiceNumber} saved to {OcrInvoicePath}", processedInvoice.invoiceNumber, ocrInvoicePath);
       }
 
-      const newBlobPath: string = await blobStorageClient.move(`${BLOB_STORAGE_INFO.queueFolderName}/${blobName}`, `${BLOB_STORAGE_INFO.finishedFolderName}/${processedInvoice.invoiceNumber}/${blobName}`);
+      const newBlobPath: string = await blobStorageClient.move(
+        `${BLOB_STORAGE_INFO.queueFolderName}/${blobName}`,
+        `${BLOB_STORAGE_INFO.finishedFolderName}/${processedInvoice.invoiceNumber}/${blobName}`
+      );
       logger.info("Processed invoice moved to finished folder: {NewBlobPath}", newBlobPath);
 
       return;
@@ -49,12 +52,24 @@ const triggerInvoiceRead = async (blob: Buffer, context: InvocationContext): Pro
     if (processedInvoice.parsedInvoiceChunks.length > 0) {
       const ocrInvoicePath: string = `${BLOB_STORAGE_INFO.failedFolderName}/${invoiceFolderName}/ocr_invoice_chunks.json`;
       if (await blobStorageClient.save(ocrInvoicePath, JSON.stringify(processedInvoice.parsedInvoiceChunks, null, 2))) {
-        logger.info("OCR result for invoiceNumber {InvoiceNumber} / blobFolderName {BlobFolderName} saved to {OcrInvoicePath}", processedInvoice.invoiceNumber, invoiceFolderName, ocrInvoicePath);
+        logger.info(
+          "OCR result for invoiceNumber {InvoiceNumber} / blobFolderName {BlobFolderName} saved to {OcrInvoicePath}",
+          processedInvoice.invoiceNumber,
+          invoiceFolderName,
+          ocrInvoicePath
+        );
       }
     }
 
-    const newFailedBlobPath: string = await blobStorageClient.move(`${BLOB_STORAGE_INFO.queueFolderName}/${blobName}`, `${BLOB_STORAGE_INFO.failedFolderName}/${invoiceFolderName}/${blobName}`);
-    logger.error("Failed to process invoice for blob name: {BlobName}. Blob moved to failed folder: {NewFailedBlobPath}", blobName, newFailedBlobPath);
+    const newFailedBlobPath: string = await blobStorageClient.move(
+      `${BLOB_STORAGE_INFO.queueFolderName}/${blobName}`,
+      `${BLOB_STORAGE_INFO.failedFolderName}/${invoiceFolderName}/${blobName}`
+    );
+    logger.error(
+      "Failed to process invoice for blob name: {BlobName}. Blob moved to failed folder: {NewFailedBlobPath}",
+      blobName,
+      newFailedBlobPath
+    );
   });
 };
 
