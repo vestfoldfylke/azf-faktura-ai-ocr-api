@@ -34,8 +34,10 @@ Create a `local.settings.json` file in the project root with the following conte
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "BLOB_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=key1;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;QueueEndpoint=http://127.0.0.1:10001/devstoreaccount1;TableEndpoint=http://127.0.0.1:10002/devstoreaccount1;",
-    "BLOB_STORAGE_CONTAINER_NAME_QUEUE": "local",
-    "BLOB_STORAGE_CONTAINER_NAME_HANDLED": "handled-local",
+    "BLOB_STORAGE_CONTAINER_NAME": "local",
+    "BLOB_STORAGE_FAILED_FOLDER_NAME": "failed",
+    "BLOB_STORAGE_FINISHED_FOLDER_NAME": "finished",
+    "BLOB_STORAGE_QUEUE_FOLDER_NAME": "queue",
     "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
     "MISTRAL_MAX_PAGES_PER_CHUNK": "4",
     "OCR_PROCESS_ALREADY_PROCESSED_FILES": "false",
@@ -53,11 +55,11 @@ Create a `local.settings.json` file in the project root with the following conte
 npm run start
 ```
 
-- This will process PDF files uploaded to the blob storage container `BLOB_STORAGE_CONTAINER_NAME_QUEUE`.
+- This will process PDF files uploaded to the blob storage container `BLOB_STORAGE_CONTAINER_NAME` in the `BLOB_STORAGE_QUEUE_FOLDER_NAME` folder.
   - Split PDF
     - If the PDF exceeds the max page limit, it will be split into chunks.
   - Each chunk or full PDF will be sent to Mistral for OCR processing
-    - Successfully parsed document annotations will be saved to blob storage container `BLOB_STORAGE_CONTAINER_NAME_HANDLED` as `finished/<invoiceNumber>/<blobName>_document_annotation.json` or `finished/<invoiceNumber>/<blobName>_chunk_n_document_annotation.json`
+    - Successfully parsed document annotations will be saved to blob storage container `BLOB_STORAGE_CONTAINER_NAME` as `BLOB_STORAGE_FINISHED_FOLDER_NAME/<invoiceNumber>/<blobName>_document_annotation.json` or `BLOB_STORAGE_FINISHED_FOLDER_NAME/<invoiceNumber>/<blobName>_chunk_n_document_annotation.json`
     - Successfully parsed WorkItems will be saved to MongoDB.
-    - Documents failed to be processed by Mistral OCR OR document annotations from Mistral OCR that failed to be parsed, will be saved to blob storage container `BLOB_STORAGE_CONTAINER_NAME_HANDLED` as `failed/<blobName>.pdf`
-  - PDF from blob storage container `BLOB_STORAGE_CONTAINER_NAME_QUEUE` will be deleted after processing
+    - Documents failed to be processed by Mistral OCR OR document annotations from Mistral OCR that failed to be parsed, will be saved to blob storage container `BLOB_STORAGE_CONTAINER_NAME` as `BLOB_STORAGE_FAILED_FOLDER_NAME/<blobName>.pdf`
+  - PDF from blob storage container `BLOB_STORAGE_CONTAINER_NAME` in `BLOB_STORAGE_QUEUE_FOLDER_NAME` folder will be deleted after successful processing

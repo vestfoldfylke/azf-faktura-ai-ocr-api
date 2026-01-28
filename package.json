@@ -41,6 +41,7 @@
   "dependencies": {
     "@azure/functions": "^4.11.0",
     "@mistralai/mistralai": "^1.10.0",
+    "@vestfoldfylke/azure-blob-client": "^1.0.0",
     "@vestfoldfylke/loglady": "^1.5.0",
     "mongodb": "^7.0.0",
     "pdf-lib": "^1.17.1",

@@ -91,16 +91,16 @@ export const insertWorkItemsToDb = async (
   invoiceNumber: string,
   pdfChunk: number,
   maxPagesPerChunk: number
-): Promise<void> => {
+): Promise<boolean> => {
   if (invoice.length === 0) {
     logger.info("No work items found in document annotation.");
-    return;
+    return true;
   }
 
   logger.info("Preparing {WorkItemsLength} work items for database insertion from documentAnnotation.", invoice.length);
   const workItemMongoList: WorkItemMongo[] = [];
   const workItemIdFailedList: number[] = [];
-  invoice.forEach((workItem: WorkItem) => {
+  for (const workItem of invoice) {
     const dbWorkItem: ZodSafeParseResult<WorkItemMongo> = WorkItemMongoSchema.safeParse({
       activity: workItem.activity,
       department: workItem.department,
@@ -128,11 +128,11 @@ export const insertWorkItemsToDb = async (
         workItem
       );
       workItemIdFailedList.push(workItem.id);
-      return;
+      continue;
     }
 
     workItemMongoList.push(dbWorkItem.data);
-  });
+  }
 
   logger.info("Prepared {WorkItemsLength} work items for database insertion.", workItemMongoList.length);
   const insertedIds: string[] = await insertWorkItems(workItemMongoList);
@@ -186,4 +186,6 @@ export const insertWorkItemsToDb = async (
       workItemMongo.pdfOriginalPageNumber
     );
   }
+
+  return insertedIds.length > 0;
 };
