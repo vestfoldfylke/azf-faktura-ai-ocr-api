@@ -40,7 +40,7 @@ const triggerInvoiceRead = async (blob: Buffer, context: InvocationContext): Pro
       }
 
       const newBlobPath: string = await blobStorageClient.move(`${BLOB_STORAGE_INFO.queueFolderName}/${blobName}`, `${BLOB_STORAGE_INFO.finishedFolderName}/${processedInvoice.invoiceNumber}/${blobName}`);
-      logger.info("Processed invoice moved to finished folder. New blob path: {NewBlobPath}", newBlobPath);
+      logger.info("Processed invoice moved to finished folder: {NewBlobPath}", newBlobPath);
 
       return;
     }
