@@ -6,7 +6,7 @@ import type { ProcessedInvoice } from "../types/faktura-ai";
 import type { Invoice } from "../types/zod-ocr.js";
 
 import { updateContext } from "./async-local-context.js";
-import { handleOcrChunk, insertWorkItemsToDb } from "./chunk-handler.js";
+import { handleOcrChunk, insertWorkItems } from "./chunk-handler.js";
 import { invoiceNumberExistsInDb } from "./mongodb-fns.js";
 import { chunkPdf } from "./pdf-fns.js";
 
@@ -91,7 +91,7 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
       logger.info("Invoice number '{InvoiceNumber}' extracted from OCR of first chunk", invoiceNumber);
     }
 
-    if (await insertWorkItemsToDb(invoiceResponse.workLists, invoiceNumber, i + 1, MAX_PAGES_PER_CHUNK)) {
+    if (await insertWorkItems(invoiceResponse.workLists, invoiceNumber, i + 1, MAX_PAGES_PER_CHUNK)) {
       insertedChunks++;
     }
 

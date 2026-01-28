@@ -20,7 +20,7 @@ export const closeDatabaseConnection = async (): Promise<void> => {
   }
 };
 
-export const insertWorkItems = async (workItems: WorkItemMongo[]): Promise<string[]> => {
+export const insertWorkItemsToDb = async (workItems: WorkItemMongo[]): Promise<string[]> => {
   const collectionName: string = getMongoDbCollectionName();
   const dbName: string = getMongoDbDatabaseName();
 

@@ -6,7 +6,7 @@ import { type WorkItemMongo, WorkItemMongoSchema } from "../types/zod-mongo.js";
 import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
 import { base64Ocr } from "./mistral-ocr.js";
-import { insertWorkItems } from "./mongodb-fns.js";
+import { insertWorkItemsToDb } from "./mongodb-fns.js";
 
 const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexInChunk: number): number => {
   return (pdfChunk - 1) * maxPagesPerChunk + pageIndexInChunk;
@@ -86,7 +86,7 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
   return parsedInvoice.data;
 };
 
-export const insertWorkItemsToDb = async (
+export const insertWorkItems = async (
   invoice: WorkItemList,
   invoiceNumber: string,
   pdfChunk: number,
@@ -135,7 +135,7 @@ export const insertWorkItemsToDb = async (
   }
 
   logger.info("Prepared {WorkItemsLength} work items for database insertion.", workItemMongoList.length);
-  const insertedIds: string[] = await insertWorkItems(workItemMongoList);
+  const insertedIds: string[] = await insertWorkItemsToDb(workItemMongoList);
 
   for (let i: number = 0; i < invoice.length; i++) {
     const workItem: WorkItem = invoice[i];
