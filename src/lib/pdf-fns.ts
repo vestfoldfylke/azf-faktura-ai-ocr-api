@@ -19,10 +19,11 @@ export const chunkPdf = async (base64Data: string, maxPages: number = 4): Promis
   logger.info("PDF has {PageCount} pages which is more than maxPages ({MaxPages}). Chunking...", pageCount, maxPages);
 
   const pdfChunks: string[] = [];
+  let chunkIndex: number = 1;
   for (let i: number = 0; i < pageCount; i += maxPages) {
     const newPdf: PDFDocument = await PDFDocument.create();
     const end: number = Math.min(i + maxPages, pageCount);
-    const chunkIndex: number = i + 1;
+    const start: number = i + 1;
 
     for (let j: number = i; j < end; j++) {
       const [copiedPage] = await newPdf.copyPages(pdfDoc, [j]);
@@ -31,7 +32,8 @@ export const chunkPdf = async (base64Data: string, maxPages: number = 4): Promis
 
     const newPdfBase64: string = await newPdf.saveAsBase64();
     pdfChunks.push(newPdfBase64);
-    logger.info("Created chunk {ChunkIndex} with pages {PageStart}-{PageEnd}", chunkIndex, chunkIndex, end);
+    logger.info("Created chunk {ChunkIndex} with pages {PageStart}-{PageEnd}", chunkIndex, start, end);
+    chunkIndex++;
   }
 
   return pdfChunks;
