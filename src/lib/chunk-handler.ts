@@ -14,7 +14,7 @@ const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexI
 
 const getTotalHours = (workItem: WorkItem): number => {
   const totalHours: number = parseFloat((workItem.total || workItem.machineHours || "0").replace(",", "."));
-  if (totalHours < 100) {
+  if (totalHours > 0 && totalHours < 100) {
     logger.debug("{WorkItemId} - Total hours parsed directly: {TotalHours}", workItem.id, totalHours);
     return totalHours;
   }
