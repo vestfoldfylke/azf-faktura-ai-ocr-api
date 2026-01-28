@@ -1,3 +1,41 @@
+import type { BlobStorageInfo } from "./types/faktura-ai";
+
+export const getBlobStorageInfo = (): BlobStorageInfo => {
+  const connectionString: string = process.env.BLOB_STORAGE_CONNECTION_STRING;
+  const containerName: string = process.env.BLOB_STORAGE_CONTAINER_NAME;
+  const failedFolderName: string = process.env.BLOB_STORAGE_FAILED_FOLDER_NAME;
+  const finishedFolderName: string = process.env.BLOB_STORAGE_FINISHED_FOLDER_NAME;
+  const queueFolderName: string = process.env.BLOB_STORAGE_QUEUE_FOLDER_NAME;
+
+  if (!connectionString) {
+    throw new Error("BLOB_STORAGE_CONNECTION_STRING is not set in environment variables");
+  }
+
+  if (!containerName) {
+    throw new Error("BLOB_STORAGE_CONTAINER_NAME is not set in environment variables");
+  }
+
+  if (!failedFolderName) {
+    throw new Error("BLOB_STORAGE_FAILED_FOLDER_NAME is not set in environment variables");
+  }
+
+  if (!finishedFolderName) {
+    throw new Error("BLOB_STORAGE_FINISHED_FOLDER_NAME is not set in environment variables");
+  }
+
+  if (!queueFolderName) {
+    throw new Error("BLOB_STORAGE_QUEUE_FOLDER_NAME is not set in environment variables");
+  }
+
+  return {
+    connectionString,
+    containerName,
+    failedFolderName,
+    finishedFolderName,
+    queueFolderName
+  };
+};
+
 export const getMistralApiKey = (): string => {
   const apiKey = process.env.MISTRAL_API_KEY;
 
@@ -49,7 +87,8 @@ export const getMongoDbDatabaseName = (): string => {
 };
 
 /**
- * Determine whether to process files that have already been processed for OCR.<br />
+ * Determine whether to process invoices that have already been processed for OCR.<br />
+ * Requires that blob name has invoice number in the name followed by a `_` (Example: `1234567_` or `1234567_something..`). Otherwise, it needs to be OCR processed to find the invoice number anyway.<br />
  * Defaults to false if not set.
  */
-export const processAlreadyProcessedFiles = (): boolean => process.env.OCR_PROCESS_ALREADY_PROCESSED_FILES?.toLowerCase() === "true";
+export const processAlreadyProcessedInvoices = (): boolean => process.env.OCR_PROCESS_ALREADY_PROCESSED_FILES?.toLowerCase() === "true";
