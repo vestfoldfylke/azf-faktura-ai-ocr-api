@@ -103,7 +103,6 @@ __azurite_db*__.json
 AzuriteConfig
 
 input*/
-output*/
 
 # macOS system files
 .DS_Store
