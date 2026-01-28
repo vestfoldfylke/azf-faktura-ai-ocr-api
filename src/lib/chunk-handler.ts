@@ -8,6 +8,20 @@ import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemL
 import { base64Ocr } from "./mistral-ocr.js";
 import { insertWorkItemsToDb } from "./mongodb-fns.js";
 
+const getDateTime = (dateStr: string, timeStr: string): Date => {
+  const dateParts: string[] = dateStr.split("."); // DD.MM.YYYY
+  const timeParts: string[] = timeStr.split(":"); // HH:mm
+
+  return new Date(
+    parseInt(dateParts[2], 10),
+    parseInt(dateParts[1], 10) - 1,
+    parseInt(dateParts[0], 10),
+    parseInt(timeParts[0], 10),
+    parseInt(timeParts[1], 10),
+    0
+  );
+};
+
 const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexInChunk: number): number => {
   return (pdfChunk - 1) * maxPagesPerChunk + pageIndexInChunk;
 };
@@ -20,9 +34,9 @@ const getTotalHours = (workItem: WorkItem): number => {
   }
 
   const fromDateParts: string[] = workItem.fromDate.split("."); // DD.MM.YYYY
-  const fromTimeParts: string[] = workItem.fromPeriod.split(":"); // HH:mm
+  const fromTimeParts: string[] = workItem.fromTime.split(":"); // HH:mm
   const toDateParts: string[] = workItem.toDate.split("."); // DD.MM.YYYY
-  const toTimeParts: string[] = workItem.toPeriod.split(":"); // HH:mm
+  const toTimeParts: string[] = workItem.toTime.split(":"); // HH:mm
 
   const fromDate: Date = new Date(
     parseInt(fromDateParts[2], 10),
@@ -86,12 +100,7 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
   return parsedInvoice.data;
 };
 
-export const insertWorkItems = async (
-  invoice: WorkItemList,
-  invoiceNumber: string,
-  pdfChunk: number,
-  maxPagesPerChunk: number
-): Promise<boolean> => {
+export const insertWorkItems = async (invoice: WorkItemList, invoiceNumber: string, pdfChunk: number, maxPagesPerChunk: number): Promise<boolean> => {
   if (invoice.length === 0) {
     logger.info("No work items found in document annotation.");
     return true;
@@ -107,7 +116,8 @@ export const insertWorkItems = async (
       employee: workItem.employee,
       extras: workItem.extras,
       fromDate: workItem.fromDate,
-      fromPeriod: workItem.fromPeriod,
+      fromTime: workItem.fromTime,
+      fromDateTime: getDateTime(workItem.fromDate, workItem.fromTime),
       id: workItem.id,
       insertedDate: new Date(),
       invoiceNumber,
@@ -116,7 +126,8 @@ export const insertWorkItems = async (
       pdfOriginalPageNumber: getPdfPageNumber(pdfChunk, maxPagesPerChunk, workItem.pageNumber),
       project: workItem.project,
       toDate: workItem.toDate,
-      toPeriod: workItem.toPeriod,
+      toTime: workItem.toTime,
+      toDateTime: getDateTime(workItem.toDate, workItem.toTime),
       totalHour: getTotalHours(workItem)
     });
 
@@ -142,12 +153,12 @@ export const insertWorkItems = async (
 
     if (workItemIdFailedList.includes(workItem.id)) {
       logger.error(
-        "{WorkItemId} - From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee})",
+        "{WorkItemId} - From: {FromDate} {FromTime} <-> {ToDate} {ToTime} ({Hours}) ({Employee})",
         workItem.id,
         workItem.fromDate,
-        workItem.fromPeriod,
+        workItem.fromTime,
         workItem.toDate,
-        workItem.toPeriod,
+        workItem.toTime,
         workItem.total || workItem.machineHours || "0",
         workItem.employee
       );
@@ -158,12 +169,12 @@ export const insertWorkItems = async (
     const workItemMongo: WorkItemMongo | undefined = workItemMongoList.find((wim: WorkItemMongo) => wim.id === workItem.id);
     if (!workItemMongo) {
       logger.error(
-        "WorkItem with WorkItemId {WorkItemId} from workItemMongoList not found... From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} ({Hours}) ({Employee})",
+        "WorkItem with WorkItemId {WorkItemId} from workItemMongoList not found... From: {FromDate} {FromTime} <-> {ToDate} {ToTime} ({Hours}) ({Employee})",
         workItem.id,
         workItem.fromDate,
-        workItem.fromPeriod,
+        workItem.fromTime,
         workItem.toDate,
-        workItem.toPeriod,
+        workItem.toTime,
         workItem.total || workItem.machineHours || "0",
         workItem.employee
       );
@@ -171,12 +182,12 @@ export const insertWorkItems = async (
     }
 
     logger.info(
-      "{WorkItemId} - From: {FromDate} {FromPeriod} <-> {ToDate} {ToPeriod} (OcrHours: {Hours}, ParsedHours: {ParsedHours}) ({Employee}) :: {InsertedId} :: Chunk: {PdfChunk} PageInChunk: {PdfChunkPageNumber} OriginalPageNumber: {PdfOriginalPageNumber}",
+      "{WorkItemId} - From: {FromDate} {FromTime} <-> {ToDate} {ToTime} (OcrHours: {Hours}, ParsedHours: {ParsedHours}) ({Employee}) :: {InsertedId} :: Chunk: {PdfChunk} PageInChunk: {PdfChunkPageNumber} OriginalPageNumber: {PdfOriginalPageNumber}",
       workItem.id,
       workItem.fromDate,
-      workItem.fromPeriod,
+      workItem.fromTime,
       workItem.toDate,
-      workItem.toPeriod,
+      workItem.toTime,
       workItem.total || workItem.machineHours || "0",
       workItemMongo.totalHour,
       workItem.employee,

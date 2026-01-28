@@ -1,11 +1,14 @@
 import { logger } from "@vestfoldfylke/loglady";
-import { type Collection, type InsertManyResult, MongoClient, type ObjectId } from "mongodb";
+import { type Collection, type InsertManyResult, MongoClient, type ObjectId, type WithId } from "mongodb";
 
 import { getMongoDbCollectionName, getMongoDbConnectionString, getMongoDbDatabaseName } from "../config.js";
 
 import type { WorkItemMongo } from "../types/zod-mongo";
 
 let mongoClient: MongoClient | null = null;
+
+const MONGO_DB_COLLECTION_NAME: string = getMongoDbCollectionName();
+const MONGO_DB_DATABASE_NAME: string = getMongoDbDatabaseName();
 
 export const closeDatabaseConnection = async (): Promise<void> => {
   if (!mongoClient) {
@@ -18,6 +21,17 @@ export const closeDatabaseConnection = async (): Promise<void> => {
   } catch (error) {
     logger.errorException(error, "Error occurred while closing MongoDB connection");
   }
+};
+
+export const getWorkItemsInDateRangeFromDb = async (fromDate: Date, toDate: Date): Promise<WithId<WorkItemMongo>[]> => {
+  const clientCollection: Collection<WorkItemMongo> = await getMongoCollection();
+
+  return await clientCollection
+    .find({
+      fromDateTime: { $gte: fromDate },
+      toDateTime: { $lte: toDate }
+    }, { sort: { fromDateTime: 1, toDateTime: 1 } })
+    .toArray();
 };
 
 export const insertWorkItemsToDb = async (workItems: WorkItemMongo[]): Promise<string[]> => {
@@ -107,4 +121,13 @@ const getMongoClient = async (): Promise<MongoClient | null> => {
     logger.errorException(error, "Failed to create new MongoDB instance and/or connect to MongoDB");
     return null;
   }
+};
+
+const getMongoCollection = async (): Promise<Collection<WorkItemMongo>> => {
+  const client: MongoClient | null = await getMongoClient();
+  if (!client) {
+    throw new Error("MongoDB client is not available. Cannot get db.");
+  }
+
+  return client.db(MONGO_DB_DATABASE_NAME).collection<WorkItemMongo>(MONGO_DB_COLLECTION_NAME);
 };

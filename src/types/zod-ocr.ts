@@ -28,12 +28,12 @@ export const WorkItemSchema = z
     employee: z.string().describe("Navn på ansatt eller kontraktør som utførte arbeidet"),
     project: z.string().nullable().describe("Prosjektnavn, prosjektnummer eller prosjektbeskrivelse knyttet til arbeidet"),
     activity: z.string().nullable().describe("Type aktivitet eller arbeidsbeskrivelse"),
-    fromPeriod: z
+    fromTime: z
       .string()
       .describe(
         "Starttidsperiode for arbeidet, 'HH:mm'. Hvis arbeidet startet på hel time, settes minuttene til '00'. Hvis minuttene ikke er tilgjengelig, settes denne til 'HH:00'"
       ),
-    toPeriod: z
+    toTime: z
       .string()
       .describe(
         "Sluttidsperiode for arbeidet, 'HH:mm'. Hvis arbeidet sluttet på hel time, settes minuttene til '00'. Hvis minuttene ikke er tilgjengelig, settes denne til 'HH:00'"

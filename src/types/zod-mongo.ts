@@ -6,7 +6,8 @@ export const WorkItemMongoSchema = z.object({
   employee: z.string(),
   extras: z.string().nullable(),
   fromDate: z.string(),
-  fromPeriod: z.string(),
+  fromTime: z.string(),
+  fromDateTime: z.date(),
   id: z.number().optional(),
   insertedDate: z.date(),
   invoiceNumber: z.string(),
@@ -15,7 +16,8 @@ export const WorkItemMongoSchema = z.object({
   pdfOriginalPageNumber: z.number(),
   project: z.string().nullable(),
   toDate: z.string(),
-  toPeriod: z.string(),
+  toTime: z.string(),
+  toDateTime: z.date(),
   totalHour: z.number()
 });
 
