@@ -91,7 +91,7 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
       logger.info("Invoice number '{InvoiceNumber}' extracted from OCR of first chunk", invoiceNumber);
     }
 
-    if (await insertWorkItems(invoiceResponse.workLists, invoiceNumber, i + 1, MAX_PAGES_PER_CHUNK)) {
+    if (await insertWorkItems(invoiceResponse.workLists, invoiceNumber, chunkIndex, MAX_PAGES_PER_CHUNK)) {
       insertedChunks++;
     }
 
