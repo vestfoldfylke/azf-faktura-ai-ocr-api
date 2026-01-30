@@ -5,7 +5,7 @@ import type { ZodSafeParseResult } from "zod";
 import { type WorkItemMongo, WorkItemMongoSchema } from "../types/zod-mongo.js";
 import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
-import { base64Ocr } from "./mistral-ocr.js";
+import { base64Ocr } from "./mistral-fns.js";
 import { insertWorkItemsToDb } from "./mongodb-fns.js";
 
 const getDateTime = (dateStr: string, timeStr: string): Date => {
