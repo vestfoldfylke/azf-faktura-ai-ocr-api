@@ -60,8 +60,8 @@ export const WorkItemSchema = z
     /*    comments: z
       .string()
       .describe("Eventuelle kommentarer eller notater knyttet til arbeidsoppføringen, SKAL være en tom streng hvis ikke tilgjengelig"),*/
-    pageNumber: z.number().describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet"),
-    id: z.number().describe("Unikt løpenummer som starter på 1 og øker med 1 for hver oppføring")
+    pageNumber: z.number().describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet. Starter ALLTID på 1 og øker med 1 for hver side i PDF'en"),
+    id: z.number().describe("Unikt løpenummer som starter på 1 og øker med 1 for hver oppføring innenfor samme side i PDF'en. Starter på 1 for hver side i PDF'en!")
   })
   .describe("Denne skal KUN opprettes når alle påkrevde felter er tilstede i OCR-resultatet.");
 
