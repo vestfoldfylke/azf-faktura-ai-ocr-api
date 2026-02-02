@@ -27,10 +27,13 @@ export const getWorkItemsInDateRangeFromDb = async (fromDate: Date, toDate: Date
   const clientCollection: Collection<WorkItemMongo> = await getMongoCollection();
 
   return await clientCollection
-    .find({
-      fromDateTime: { $gte: fromDate },
-      toDateTime: { $lte: toDate }
-    }, { sort: { fromDateTime: 1, toDateTime: 1 } })
+    .find(
+      {
+        fromDateTime: { $gte: fromDate },
+        toDateTime: { $lte: toDate }
+      },
+      { sort: { fromDateTime: 1, toDateTime: 1 } }
+    )
     .toArray();
 };
 
