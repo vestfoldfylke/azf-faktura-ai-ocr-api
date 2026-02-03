@@ -12,7 +12,7 @@ const convertCsvItemsToCsv = (csvItems: CsvItem[], problematicEntries: Problemat
 
   csvItems.forEach((csvItem: CsvItem, index: number) => {
     const problemsForItem: ProblematicCsvItem[] = problematicEntries.filter(
-      (problematicEntry: ProblematicCsvItem) => (problematicEntry.entryId - 1) === index
+      (problematicEntry: ProblematicCsvItem) => problematicEntry.entryId - 1 === index
     );
     if (problemsForItem.length === 0) {
       csvContent += `"${csvItem.entryId}","${csvItem.invoiceNumber}","${csvItem.fromDate}","${csvItem.fromTime}","${csvItem.toDate}","${csvItem.toTime}","${csvItem.totalHour.toString().replace(".", ",")}","${csvItem.employee}","${csvItem.project ?? ""}","${csvItem.activity ?? ""}",""\n`;
@@ -114,12 +114,14 @@ const triggerExport = async (request: HttpRequest, _context: InvocationContext):
     toDate.toISOString()
   );
 
-  const csvItems: CsvItem[] = (await getWorkItemsInDateRangeFromDb(fromDate, toDate)).map((workItem: WithId<WorkItemMongo>, index: number): CsvItem => {
-    return {
-      ...workItem,
-      entryId: index + 1
-    };
-  });
+  const csvItems: CsvItem[] = (await getWorkItemsInDateRangeFromDb(fromDate, toDate)).map(
+    (workItem: WithId<WorkItemMongo>, index: number): CsvItem => {
+      return {
+        ...workItem,
+        entryId: index + 1
+      };
+    }
+  );
   if (csvItems.length === 0) {
     logger.info("No work items found in the specified date range");
     return {
