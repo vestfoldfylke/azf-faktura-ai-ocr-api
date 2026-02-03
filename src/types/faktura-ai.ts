@@ -17,8 +17,6 @@ export type CsvItem = Omit<
 };
 
 export type ProblematicCsvItem = Omit<CsvItem, "fromDateTime" | "toDateTime"> & {
-  workItemIndex: number;
-  otherWorkItemIndex: number;
   reason: string;
 };
 

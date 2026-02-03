@@ -12,23 +12,14 @@ const convertCsvItemsToCsv = (csvItems: CsvItem[], problematicEntries: Problemat
 
   csvItems.forEach((csvItem: CsvItem, index: number) => {
     const problemsForItem: ProblematicCsvItem[] = problematicEntries.filter(
-      (problematicEntry: ProblematicCsvItem) => problematicEntry.workItemIndex === index
+      (problematicEntry: ProblematicCsvItem) => (problematicEntry.entryId - 1) === index
     );
-
     if (problemsForItem.length === 0) {
       csvContent += `"${csvItem.entryId}","${csvItem.invoiceNumber}","${csvItem.fromDate}","${csvItem.fromTime}","${csvItem.toDate}","${csvItem.toTime}","${csvItem.totalHour.toString().replace(".", ",")}","${csvItem.employee}","${csvItem.project ?? ""}","${csvItem.activity ?? ""}",""\n`;
       return;
     }
 
-    let problemStr: string = "";
-    for (let i: number = 0; i < problemsForItem.length; i++) {
-      if (problemStr.length === 0) {
-        problemStr += `${i + 1}: ${problemsForItem[i].reason}`;
-        continue;
-      }
-
-      problemStr += ` -- ${i + 1}: ${problemsForItem[i].reason}`;
-    }
+    const problemStr: string = problemsForItem.map((problemForItem: ProblematicCsvItem) => problemForItem.reason).join(" -- ");
 
     csvContent += `"${csvItem.entryId}","${csvItem.invoiceNumber}","${csvItem.fromDate}","${csvItem.fromTime}","${csvItem.toDate}","${csvItem.toTime}","${csvItem.totalHour.toString().replace(".", ",")}","${csvItem.employee}","${csvItem.project ?? ""}","${csvItem.activity ?? ""}","${problemStr}"\n`;
   });
@@ -40,10 +31,10 @@ const findCsvItemsWithProblems = (csvItems: CsvItem[]): ProblematicCsvItem[] => 
   const problematicEntries: ProblematicCsvItem[] = [];
 
   // Check for duplicate entries and overlapping time periods
-  csvItems.forEach((csvItem: CsvItem, index: number) => {
-    csvItems.forEach((otherCsvItem: CsvItem, otherIndex: number) => {
-      if (csvItem.employee !== otherCsvItem.employee || index === otherIndex) {
-        return;
+  for (const csvItem of csvItems) {
+    for (const otherCsvItem of csvItems) {
+      if (csvItem.employee !== otherCsvItem.employee || csvItem.entryId === otherCsvItem.entryId) {
+        continue;
       }
 
       // Check for duplicate entries
@@ -54,8 +45,6 @@ const findCsvItemsWithProblems = (csvItems: CsvItem[]): ProblematicCsvItem[] => 
       ) {
         problematicEntries.push({
           ...csvItem,
-          workItemIndex: index,
-          otherWorkItemIndex: otherIndex,
           reason: `Duplikat av OppføringsId ${otherCsvItem.entryId}`
         });
 
@@ -63,21 +52,19 @@ const findCsvItemsWithProblems = (csvItems: CsvItem[]): ProblematicCsvItem[] => 
       }
 
       // Check for overlapping time periods
-      const workItemStart = csvItem.fromDateTime.getTime();
-      const workItemEnd = csvItem.toDateTime.getTime();
-      const otherWorkItemStart = otherCsvItem.fromDateTime.getTime();
-      const otherWorkItemEnd = otherCsvItem.toDateTime.getTime();
+      const workItemStart: number = csvItem.fromDateTime.getTime();
+      const workItemEnd: number = csvItem.toDateTime.getTime();
+      const otherWorkItemStart: number = otherCsvItem.fromDateTime.getTime();
+      const otherWorkItemEnd: number = otherCsvItem.toDateTime.getTime();
 
       if (!isDuplicateEntry && workItemStart < otherWorkItemEnd && otherWorkItemStart < workItemEnd) {
         problematicEntries.push({
           ...csvItem,
-          workItemIndex: index,
-          otherWorkItemIndex: otherIndex,
           reason: `Overlappende tidsperiode med OppføringsId ${otherCsvItem.entryId}`
         });
       }
-    });
-  });
+    }
+  }
 
   return problematicEntries;
 };
@@ -127,20 +114,18 @@ const triggerExport = async (request: HttpRequest, _context: InvocationContext):
     toDate.toISOString()
   );
 
-  const workItems: WithId<WorkItemMongo>[] = await getWorkItemsInDateRangeFromDb(fromDate, toDate);
-  if (workItems.length === 0) {
-    logger.info("No work items found in the specified date range");
-    return {
-      status: 204
-    };
-  }
-
-  const csvItems: CsvItem[] = workItems.map((workItem: WithId<WorkItemMongo>, index: number) => {
+  const csvItems: CsvItem[] = (await getWorkItemsInDateRangeFromDb(fromDate, toDate)).map((workItem: WithId<WorkItemMongo>, index: number): CsvItem => {
     return {
       ...workItem,
       entryId: index + 1
     };
   });
+  if (csvItems.length === 0) {
+    logger.info("No work items found in the specified date range");
+    return {
+      status: 204
+    };
+  }
 
   logger.info("Found {CsvItemsLength} csv items", csvItems.length);
 
