@@ -28,12 +28,12 @@ export const WorkItemSchema = z
     employee: z.string().describe("Navn på ansatt eller kontraktør som utførte arbeidet"),
     project: z.string().nullable().describe("Prosjektnavn, prosjektnummer eller prosjektbeskrivelse knyttet til arbeidet"),
     activity: z.string().nullable().describe("Type aktivitet eller arbeidsbeskrivelse"),
-    fromPeriod: z
+    fromTime: z
       .string()
       .describe(
         "Starttidsperiode for arbeidet, 'HH:mm'. Hvis arbeidet startet på hel time, settes minuttene til '00'. Hvis minuttene ikke er tilgjengelig, settes denne til 'HH:00'"
       ),
-    toPeriod: z
+    toTime: z
       .string()
       .describe(
         "Sluttidsperiode for arbeidet, 'HH:mm'. Hvis arbeidet sluttet på hel time, settes minuttene til '00'. Hvis minuttene ikke er tilgjengelig, settes denne til 'HH:00'"
@@ -60,8 +60,14 @@ export const WorkItemSchema = z
     /*    comments: z
       .string()
       .describe("Eventuelle kommentarer eller notater knyttet til arbeidsoppføringen, SKAL være en tom streng hvis ikke tilgjengelig"),*/
-    pageNumber: z.number().describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet"),
-    id: z.number().describe("Unikt løpenummer som starter på 1 og øker med 1 for hver oppføring")
+    pageNumber: z
+      .number()
+      .describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet. Starter ALLTID på 1 og øker med 1 for hver side i PDF'en"),
+    id: z
+      .number()
+      .describe(
+        "Unikt løpenummer som starter på 1 og øker med 1 for hver oppføring innenfor samme side i PDF'en. Starter på 1 for hver side i PDF'en!"
+      )
   })
   .describe("Denne skal KUN opprettes når alle påkrevde felter er tilstede i OCR-resultatet.");
 
