@@ -21,4 +21,4 @@ export const WorkItemMongoSchema = z.object({
   totalHour: z.number()
 });
 
-export type WorkItemMongo = z.infer<typeof WorkItemMongoSchema>;
+export type WorkMongoItem = z.infer<typeof WorkItemMongoSchema>;

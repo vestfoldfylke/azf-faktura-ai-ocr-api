@@ -3,7 +3,7 @@ import { type Collection, type InsertManyResult, MongoClient, type ObjectId, typ
 
 import { getMongoDbCollectionName, getMongoDbConnectionString, getMongoDbDatabaseName } from "../config.js";
 
-import type { WorkItemMongo } from "../types/zod-mongo";
+import type { WorkMongoItem } from "../types/zod-mongo";
 
 let mongoClient: MongoClient | null = null;
 
@@ -23,8 +23,8 @@ export const closeDatabaseConnection = async (): Promise<void> => {
   }
 };
 
-export const getWorkItemsInDateRangeFromDb = async (fromDate: Date, toDate: Date): Promise<WithId<WorkItemMongo>[]> => {
-  const clientCollection: Collection<WorkItemMongo> = await getMongoCollection();
+export const getWorkItemsInDateRangeFromDb = async (fromDate: Date, toDate: Date): Promise<WithId<WorkMongoItem>[]> => {
+  const clientCollection: Collection<WorkMongoItem> = await getMongoCollection();
 
   return await clientCollection
     .find(
@@ -37,7 +37,7 @@ export const getWorkItemsInDateRangeFromDb = async (fromDate: Date, toDate: Date
     .toArray();
 };
 
-export const insertWorkItemsToDb = async (workItems: WorkItemMongo[]): Promise<string[]> => {
+export const insertWorkItemsToDb = async (workItems: WorkMongoItem[]): Promise<string[]> => {
   const collectionName: string = getMongoDbCollectionName();
   const dbName: string = getMongoDbDatabaseName();
 
@@ -48,9 +48,9 @@ export const insertWorkItemsToDb = async (workItems: WorkItemMongo[]): Promise<s
   }
 
   try {
-    const clientCollection: Collection<WorkItemMongo> = client.db(dbName).collection<WorkItemMongo>(collectionName);
+    const clientCollection: Collection<WorkMongoItem> = client.db(dbName).collection<WorkMongoItem>(collectionName);
 
-    const result: InsertManyResult<WorkItemMongo> = await clientCollection.insertMany(workItems);
+    const result: InsertManyResult<WorkMongoItem> = await clientCollection.insertMany(workItems);
     if (result.acknowledged) {
       const insertedIds: string[] = Object.values(result.insertedIds).map((id: ObjectId) => id.toHexString());
 
@@ -92,7 +92,7 @@ export const invoiceNumberExistsInDb = async (invoiceNumber: string): Promise<bo
   }
 
   try {
-    const clientCollection: Collection<WorkItemMongo> = client.db(dbName).collection<WorkItemMongo>(collectionName);
+    const clientCollection: Collection<WorkMongoItem> = client.db(dbName).collection<WorkMongoItem>(collectionName);
     const itemsWithInvoiceNumber: number = await clientCollection.countDocuments({ invoiceNumber });
     return itemsWithInvoiceNumber > 0;
   } catch (error) {
@@ -126,11 +126,11 @@ const getMongoClient = async (): Promise<MongoClient | null> => {
   }
 };
 
-const getMongoCollection = async (): Promise<Collection<WorkItemMongo>> => {
+const getMongoCollection = async (): Promise<Collection<WorkMongoItem>> => {
   const client: MongoClient | null = await getMongoClient();
   if (!client) {
     throw new Error("MongoDB client is not available. Cannot get db.");
   }
 
-  return client.db(MONGO_DB_DATABASE_NAME).collection<WorkItemMongo>(MONGO_DB_COLLECTION_NAME);
+  return client.db(MONGO_DB_DATABASE_NAME).collection<WorkMongoItem>(MONGO_DB_COLLECTION_NAME);
 };

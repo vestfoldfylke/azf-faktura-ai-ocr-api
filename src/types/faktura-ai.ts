@@ -1,5 +1,5 @@
-import type { WorkItemMongo } from "./zod-mongo";
-import type { Invoice } from "./zod-ocr";
+import type { WorkMongoItem } from "./zod-mongo";
+import type { Invoice, WorkItemList } from "./zod-ocr";
 
 export type BlobStorageInfo = {
   connectionString: string;
@@ -10,10 +10,17 @@ export type BlobStorageInfo = {
 };
 
 export type CsvItem = Omit<
-  WorkItemMongo,
+  WorkMongoItem,
   "department" | "extras" | "id" | "insertedDate" | "pdfChunk" | "pdfChunkPageNumber" | "pdfOriginalPageNumber"
 > & {
   entryId: number;
+};
+
+export type ItemsToInsert = {
+  workItemList: WorkItemList;
+  workMongoItemList: WorkMongoItem[];
+  failedWorkItemIds: number[];
+  chunkIndex: number;
 };
 
 export type ProblematicCsvItem = Omit<CsvItem, "fromDateTime" | "toDateTime"> & {
