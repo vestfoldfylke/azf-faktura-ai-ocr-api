@@ -18,6 +18,23 @@ type ItemsToInsertForAllChunks = {
 const MAX_PAGES_PER_CHUNK: number = getMaxPagesPerChunk();
 const PROCESS_ALREADY_PROCESSED_INVOICES: boolean = processAlreadyProcessedInvoices();
 
+const shouldProcessInvoice = async (invoiceNumber: string): Promise<boolean> => {
+  if (!(await invoiceNumberExistsInDb(invoiceNumber))) {
+    return true;
+  }
+
+  if (!PROCESS_ALREADY_PROCESSED_INVOICES) {
+    logger.info("Invoice number '{InvoiceNumber}' already processed. Skipping OCR processing for this pdf", invoiceNumber);
+    return false;
+  }
+
+  logger.info(
+    "Invoice number '{InvoiceNumber}' already processed, but since 'PROCESS_ALREADY_PROCESSED_INVOICES' is true, we will process it again",
+    invoiceNumber
+  );
+  return true;
+}
+
 export const processInvoice = async (path: string, blobName: string, base64Data: string): Promise<ProcessedInvoice> => {
   let invoiceNumber: string | null = blobName.indexOf("_") > -1 ? blobName.substring(0, blobName.indexOf("_")) : null;
 
@@ -28,24 +45,13 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
     PROCESS_ALREADY_PROCESSED_INVOICES
   );
 
-  if (invoiceNumber) {
-    const invoiceNumberAlreadyExists: boolean = await invoiceNumberExistsInDb(invoiceNumber);
-    if (invoiceNumberAlreadyExists) {
-      if (!PROCESS_ALREADY_PROCESSED_INVOICES) {
-        logger.info("Invoice number '{InvoiceNumber}' already processed. Skipping OCR processing for this pdf", invoiceNumber);
-        return {
-          alreadyProcessed: true,
-          invoiceNumber,
-          parsedInvoiceChunks: [],
-          processedSuccessfully: true
-        };
-      }
-
-      logger.info(
-        "Invoice number '{InvoiceNumber}' already processed, but since 'PROCESS_ALREADY_PROCESSED_INVOICES' is true, we will process it again",
-        invoiceNumber
-      );
-    }
+  if (invoiceNumber && !(await shouldProcessInvoice(invoiceNumber))) {
+    return {
+      alreadyProcessed: true,
+      invoiceNumber,
+      parsedInvoiceChunks: [],
+      processedSuccessfully: true
+    };
   }
 
   // PDF handling
@@ -98,6 +104,15 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
 
       processedInvoice.invoiceNumber = invoiceNumber;
       logger.info("Invoice number '{InvoiceNumber}' extracted from OCR of first chunk", invoiceNumber);
+
+      if (invoiceNumber && !(await shouldProcessInvoice(invoiceNumber))) {
+        return {
+          alreadyProcessed: true,
+          invoiceNumber,
+          parsedInvoiceChunks: [],
+          processedSuccessfully: true
+        };
+      }
     }
 
     const itemsToInsert: ItemsToInsert = getItemsToInsert(invoiceResponse.workLists, invoiceNumber, chunkIndex, MAX_PAGES_PER_CHUNK);
