@@ -8,18 +8,28 @@ import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemL
 import { base64Ocr } from "./mistral-ocr.js";
 import { insertWorkItemsToDb } from "./mongodb-fns.js";
 
+type ValidWorkItem = {
+  reason?: string;
+  valid: boolean;
+};
+
 const getDateTime = (dateStr: string, timeStr: string): Date => {
   const dateParts: string[] = dateStr.split("."); // DD.MM.YYYY
   const timeParts: string[] = timeStr.split(":"); // HH:mm
 
-  return new Date(
-    parseInt(dateParts[2], 10),
-    parseInt(dateParts[1], 10) - 1,
-    parseInt(dateParts[0], 10),
-    parseInt(timeParts[0], 10),
-    parseInt(timeParts[1], 10),
-    0
-  );
+  try {
+    return new Date(
+      parseInt(dateParts[2], 10),
+      parseInt(dateParts[1], 10) - 1,
+      parseInt(dateParts[0], 10),
+      parseInt(timeParts[0], 10),
+      parseInt(timeParts[1], 10),
+      0
+    );
+  } catch (error) {
+    logger.errorException(error, "Failed to parse date and time: {DateStr} {TimeStr}", dateStr, timeStr);
+    throw error;
+  }
 };
 
 const getPdfPageNumber = (pdfChunk: number, maxPagesPerChunk: number, pageIndexInChunk: number): number => {
@@ -33,41 +43,62 @@ const getTotalHours = (workItem: WorkItem): number => {
     return totalHours;
   }
 
-  const fromDateParts: string[] = workItem.fromDate.split("."); // DD.MM.YYYY
-  const fromTimeParts: string[] = workItem.fromTime.split(":"); // HH:mm
-  const toDateParts: string[] = workItem.toDate.split("."); // DD.MM.YYYY
-  const toTimeParts: string[] = workItem.toTime.split(":"); // HH:mm
+  try {
+    const fromDateParts: string[] = workItem.fromDate.split("."); // DD.MM.YYYY
+    const fromTimeParts: string[] = workItem.fromTime.split(":"); // HH:mm
+    const toDateParts: string[] = workItem.toDate.split("."); // DD.MM.YYYY
+    const toTimeParts: string[] = workItem.toTime.split(":"); // HH:mm
 
-  const fromDate: Date = new Date(
-    parseInt(fromDateParts[2], 10),
-    parseInt(fromDateParts[1], 10) - 1,
-    parseInt(fromDateParts[0], 10),
-    parseInt(fromTimeParts[0], 10),
-    parseInt(fromTimeParts[1], 10)
-  );
+    const fromDate: Date = new Date(
+      parseInt(fromDateParts[2], 10),
+      parseInt(fromDateParts[1], 10) - 1,
+      parseInt(fromDateParts[0], 10),
+      parseInt(fromTimeParts[0], 10),
+      parseInt(fromTimeParts[1], 10)
+    );
 
-  const toDate: Date = new Date(
-    parseInt(toDateParts[2], 10),
-    parseInt(toDateParts[1], 10) - 1,
-    parseInt(toDateParts[0], 10),
-    parseInt(toTimeParts[0], 10),
-    parseInt(toTimeParts[1], 10)
-  );
+    const toDate: Date = new Date(
+      parseInt(toDateParts[2], 10),
+      parseInt(toDateParts[1], 10) - 1,
+      parseInt(toDateParts[0], 10),
+      parseInt(toTimeParts[0], 10),
+      parseInt(toTimeParts[1], 10)
+    );
 
-  const diffMs: number = toDate.getTime() - fromDate.getTime();
-  const diffHours: number = diffMs / (1000 * 60 * 60);
-  const totalHoursParsed: number = parseFloat(diffHours.toFixed(2));
+    const diffMs: number = toDate.getTime() - fromDate.getTime();
+    const diffHours: number = diffMs / (1000 * 60 * 60);
+    const totalHoursParsed: number = parseFloat(diffHours.toFixed(2));
 
-  logger.debug(
-    "{WorkItemId} - Total hours parsed from DateTime since total hours from OCR is most likely wrong: TotalHoursOcr: {TotalHoursOcr}, TotalHoursParsed: {TotalHoursParsed}, {FromDate} <--> {ToDate}",
-    workItem.id,
-    totalHours,
-    totalHoursParsed,
-    fromDate.toISOString(),
-    toDate.toISOString()
-  );
-  return totalHoursParsed;
+    logger.debug(
+      "{WorkItemId} - Total hours parsed from DateTime since total hours from OCR is most likely wrong: TotalHoursOcr: {TotalHoursOcr}, TotalHoursParsed: {TotalHoursParsed}, {FromDate} <--> {ToDate}",
+      workItem.id,
+      totalHours,
+      totalHoursParsed,
+      fromDate.toISOString(),
+      toDate.toISOString()
+    );
+    return totalHoursParsed;
+  } catch (error) {
+    logger.errorException(error, "Failed to calculate total hours for WorkItem {@WorkItem}", workItem);
+    throw error;
+  }
 };
+
+const isValidDate = new RegExp(/^(0[1-9]|[12]\d|3[01])\.(0[1-9]|1[0-2])\.\d{4}$/);
+const isValidTime = new RegExp(/^[0-2][0-9]:[0-5][0-9]$/);
+
+const getValidWorkItem = (workItem: WorkItem): ValidWorkItem => {
+  if (!workItem.employee || !isValidTime.test(workItem.fromTime) || !isValidTime.test(workItem.toTime) || !isValidDate.test(workItem.fromDate) || !isValidDate.test(workItem.toDate)) {
+    return {
+      valid: false,
+      reason: "Missing employee or invalid date/time format"
+    };
+  }
+
+  return {
+    valid: true
+  };
+}
 
 export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null> => {
   const startTime: number = Date.now();
@@ -110,6 +141,13 @@ export const insertWorkItems = async (invoice: WorkItemList, invoiceNumber: stri
   const workItemMongoList: WorkItemMongo[] = [];
   const workItemIdFailedList: number[] = [];
   for (const workItem of invoice) {
+    const validWorkItem: ValidWorkItem = getValidWorkItem(workItem);
+    if (!validWorkItem.valid) {
+      logger.error("WorkItem with id {WorkItemId} is {InvalidReason}. Skipping WorkItem: {@WorkItem}", workItem.id, validWorkItem.reason, workItem);
+      workItemIdFailedList.push(workItem.id);
+      continue;
+    }
+
     const dbWorkItem: ZodSafeParseResult<WorkItemMongo> = WorkItemMongoSchema.safeParse({
       activity: workItem.activity,
       department: workItem.department,
