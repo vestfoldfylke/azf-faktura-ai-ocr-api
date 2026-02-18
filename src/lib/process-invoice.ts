@@ -33,7 +33,7 @@ const shouldProcessInvoice = async (invoiceNumber: string): Promise<boolean> => 
     invoiceNumber
   );
   return true;
-}
+};
 
 export const processInvoice = async (path: string, blobName: string, base64Data: string): Promise<ProcessedInvoice> => {
   let invoiceNumber: string | null = blobName.indexOf("_") > -1 ? blobName.substring(0, blobName.indexOf("_")) : null;
