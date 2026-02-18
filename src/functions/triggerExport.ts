@@ -5,7 +5,7 @@ import type { WithId } from "mongodb";
 import { getWorkItemsInDateRangeFromDb } from "../lib/mongodb-fns.js";
 
 import type { CsvItem, ProblematicCsvItem } from "../types/faktura-ai";
-import type { WorkItemMongo } from "../types/zod-mongo.js";
+import type { WorkMongoItem } from "../types/zod-mongo.js";
 
 const convertCsvItemsToCsv = (csvItems: CsvItem[], problematicEntries: ProblematicCsvItem[]) => {
   let csvContent = '"OppføringsId","Fakturanummer","FraDato","FraTid","TilDato","TilTid","Timer totalt","Ansatt","Prosjekt","Aktivitet","Funn"\n';
@@ -115,7 +115,7 @@ const triggerExport = async (request: HttpRequest, _context: InvocationContext):
   );
 
   const csvItems: CsvItem[] = (await getWorkItemsInDateRangeFromDb(fromDate, toDate)).map(
-    (workItem: WithId<WorkItemMongo>, index: number): CsvItem => {
+    (workItem: WithId<WorkMongoItem>, index: number): CsvItem => {
       return {
         ...workItem,
         entryId: index + 1
