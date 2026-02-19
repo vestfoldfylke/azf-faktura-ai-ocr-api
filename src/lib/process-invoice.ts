@@ -2,7 +2,7 @@ import { logger } from "@vestfoldfylke/loglady";
 
 import { getMaxPagesPerChunk, processAlreadyProcessedInvoices } from "../config.js";
 
-import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai";
+import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai.js";
 import type { Invoice } from "../types/zod-ocr.js";
 
 import { updateContext } from "./async-local-context.js";

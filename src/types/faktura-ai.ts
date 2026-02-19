@@ -1,5 +1,5 @@
-import type { WorkMongoItem } from "./zod-mongo";
-import type { Invoice, WorkItemList } from "./zod-ocr";
+import type { WorkMongoItem } from "./zod-mongo.js";
+import type { Invoice, WorkItemList } from "./zod-ocr.js";
 
 export type BlobStorageInfo = {
   connectionString: string;

@@ -4,7 +4,7 @@ import { logger } from "@vestfoldfylke/loglady";
 
 import { getMistralApiKey } from "../config.js";
 
-import type { OcrRequestOptions, ZodObjectAnyShape } from "../types/ocr";
+import type { OcrRequestOptions, ZodObjectAnyShape } from "../types/ocr.js";
 
 const apiKey: string = getMistralApiKey();
 

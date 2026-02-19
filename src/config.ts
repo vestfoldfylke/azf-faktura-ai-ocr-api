@@ -1,4 +1,4 @@
-import type { BlobStorageInfo } from "./types/faktura-ai";
+import type { BlobStorageInfo } from "./types/faktura-ai.js";
 
 export const getBlobStorageInfo = (): BlobStorageInfo => {
   const connectionString: string = process.env.BLOB_STORAGE_CONNECTION_STRING;

@@ -9,7 +9,7 @@
     "lint:fix": "biome check --write",
     "build": "tsc --project tsconfig.json",
     "clean": "rm -rf dist",
-    "prestart": "npm run clean && npm run build",
+    "prestart": "npm run lint && npm run clean && npm run build",
     "start": "func start",
     "test": "npm run lint && node --import tsx --test tests/**/*.test.ts"
   },

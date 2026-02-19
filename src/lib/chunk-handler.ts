@@ -2,7 +2,7 @@ import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
 import type { ZodSafeParseResult } from "zod";
 
-import type { ItemsToInsert } from "../types/faktura-ai";
+import type { ItemsToInsert } from "../types/faktura-ai.js";
 import { WorkItemMongoSchema, type WorkMongoItem } from "../types/zod-mongo.js";
 import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
