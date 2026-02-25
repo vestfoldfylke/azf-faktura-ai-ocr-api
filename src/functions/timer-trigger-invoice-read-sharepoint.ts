@@ -10,6 +10,6 @@ export async function timerTrigger(_myTimer: Timer, _context: InvocationContext)
 }
 
 app.timer("timerTrigger", {
-  schedule: "%InvoiceReadSchedule%",
+  schedule: "0 */1 * * * *",
   handler: timerTrigger
 });
