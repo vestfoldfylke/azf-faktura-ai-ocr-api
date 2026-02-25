@@ -4,7 +4,7 @@ import type { WithId } from "mongodb";
 
 import { getWorkItemsInDateRangeFromDb } from "../lib/mongodb-fns.js";
 
-import type { CsvItem, ProblematicCsvItem } from "../types/faktura-ai";
+import type { CsvItem, ProblematicCsvItem } from "../types/faktura-ai.js";
 import type { WorkMongoItem } from "../types/zod-mongo.js";
 
 const convertCsvItemsToCsv = (csvItems: CsvItem[], problematicEntries: ProblematicCsvItem[]) => {

@@ -2,7 +2,7 @@ import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
 import type { ZodSafeParseResult } from "zod";
 
-import type { ItemsToInsert } from "../types/faktura-ai";
+import type { ItemsToInsert } from "../types/faktura-ai.js";
 import { WorkItemMongoSchema, type WorkMongoItem } from "../types/zod-mongo.js";
 import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
@@ -109,7 +109,7 @@ const getValidWorkItem = (workItem: WorkItem): ValidWorkItem => {
 
 export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null> => {
   const startTime: number = Date.now();
-  logger.info("OCR processing pdf");
+  logger.info("OCR processing pdf chunk");
 
   const response: OCRResponse | null = await base64Ocr(base64Data, {
     bboxAnnotationFormat: ImageSchema,
@@ -118,7 +118,7 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
   });
 
   if (!response) {
-    logger.warn("OCR processing failed for pdf. Skipping");
+    logger.warn("OCR processing failed for pdf chunk. Skipping");
     return null;
   }
 

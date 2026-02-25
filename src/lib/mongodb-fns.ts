@@ -3,7 +3,7 @@ import { type Collection, type InsertManyResult, MongoClient, type ObjectId, typ
 
 import { getMongoDbCollectionName, getMongoDbConnectionString, getMongoDbDatabaseName } from "../config.js";
 
-import type { WorkMongoItem } from "../types/zod-mongo";
+import type { WorkMongoItem } from "../types/zod-mongo.js";
 
 let mongoClient: MongoClient | null = null;
 

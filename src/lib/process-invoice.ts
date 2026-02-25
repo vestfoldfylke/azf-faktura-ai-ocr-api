@@ -2,10 +2,9 @@ import { logger } from "@vestfoldfylke/loglady";
 
 import { getMaxPagesPerChunk, processAlreadyProcessedInvoices } from "../config.js";
 
-import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai";
+import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai.js";
 import type { Invoice } from "../types/zod-ocr.js";
 
-import { updateContext } from "./async-local-context.js";
 import { getItemsToInsert, handleOcrChunk, insertWorkItems } from "./chunk-handler.js";
 import { invoiceNumberExistsInDb } from "./mongodb-fns.js";
 import { chunkPdf } from "./pdf-fns.js";
@@ -24,7 +23,7 @@ const shouldProcessInvoice = async (invoiceNumber: string): Promise<boolean> => 
   }
 
   if (!PROCESS_ALREADY_PROCESSED_INVOICES) {
-    logger.info("Invoice number '{InvoiceNumber}' already processed. Skipping OCR processing for this pdf", invoiceNumber);
+    logger.info("Invoice number '{InvoiceNumber}' already processed. Skipping further OCR processing for this pdf", invoiceNumber);
     return false;
   }
 
@@ -35,27 +34,16 @@ const shouldProcessInvoice = async (invoiceNumber: string): Promise<boolean> => 
   return true;
 };
 
-export const processInvoice = async (path: string, blobName: string, base64Data: string): Promise<ProcessedInvoice> => {
-  let invoiceNumber: string | null = blobName.indexOf("_") > -1 ? blobName.substring(0, blobName.indexOf("_")) : null;
+export const processInvoice = async (filename: string, base64Data: string, logFileIndexStr: string): Promise<ProcessedInvoice> => {
+  let invoiceNumber: string | null = null;
 
   logger.info(
-    "processInvoice for blob '{BlobPath}' with maxPages: {MaxPagesPerChunk} and process already processed invoices: {ProcessAlreadyProcessedInvoices}",
-    path,
+    "processing PDF with maxPages: {MaxPagesPerChunk} and process already processed invoices: {ProcessAlreadyProcessedInvoices}",
     MAX_PAGES_PER_CHUNK,
     PROCESS_ALREADY_PROCESSED_INVOICES
   );
 
-  if (invoiceNumber && !(await shouldProcessInvoice(invoiceNumber))) {
-    return {
-      alreadyProcessed: true,
-      invoiceNumber,
-      parsedInvoiceChunks: [],
-      processedSuccessfully: true
-    };
-  }
-
   // PDF handling
-  logger.info("Processing PDF");
   const chunkedParts: string[] = await chunkPdf(base64Data, MAX_PAGES_PER_CHUNK);
   logger.info("Is pdf chunked? {IsChunked}. Chunks: {ChunkLength}", chunkedParts.length > 1, chunkedParts.length);
 
@@ -64,6 +52,7 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
   const processedInvoice: ProcessedInvoice = {
     alreadyProcessed: false,
     invoiceNumber,
+    insertedWorkItemCount: 0,
     parsedInvoiceChunks: [],
     processedSuccessfully: true
   };
@@ -76,28 +65,28 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
   for (let i: number = 0; i < chunkedParts.length; i++) {
     const chunkIndex: number = i + 1;
 
-    updateContext({
-      prefix: `${path} - chunks - ${chunkIndex} / ${chunkedParts.length}]`
+    logger.logConfig({
+      prefix: `${logFileIndexStr} - ${filename} - chunks - [${chunkIndex} / ${chunkedParts.length}]`
     });
 
     const invoiceResponse: Invoice | null = await handleOcrChunk(chunkedParts[i]);
     if (!invoiceResponse) {
       if (i === 0) {
         logger.error("OCR processing failed for first chunk. Skipping invoice");
-        processedInvoice.parsedInvoiceChunks.push(null);
+        processedInvoice.parsedInvoiceChunks.push(invoiceResponse);
         break;
       }
 
-      logger.warn("OCR processing failed for chunk {ChunkIndex}. Skipping this chunk", chunkIndex);
-      processedInvoice.parsedInvoiceChunks.push(null);
-      continue;
+      logger.error("OCR processing failed for chunk. Skipping rest of invoice");
+      processedInvoice.parsedInvoiceChunks.push(invoiceResponse);
+      break;
     }
 
-    if (!invoiceNumber && i === 0) {
+    if (i === 0) {
       invoiceNumber = invoiceResponse.invoice?.number || null;
 
       if (!invoiceNumber) {
-        logger.error("No invoice number found from blob name, and OCR did not find an invoice number on extraction. Skipping invoice");
+        logger.error("No invoice number found from OCR. Skipping invoice");
         processedInvoice.parsedInvoiceChunks.push(null);
         break;
       }
@@ -109,6 +98,7 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
         return {
           alreadyProcessed: true,
           invoiceNumber,
+          insertedWorkItemCount: 0,
           parsedInvoiceChunks: [],
           processedSuccessfully: true
         };
@@ -122,11 +112,13 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
     processedInvoice.parsedInvoiceChunks.push(invoiceResponse);
   }
 
-  updateContext({
-    prefix: path
+  logger.logConfig({
+    prefix: `${logFileIndexStr} - ${filename}`
   });
 
-  if (!itemsToInsertForAllChunks.hasFailedWorkItems) {
+  const hasNullParsedChunks: boolean = processedInvoice.parsedInvoiceChunks.some((chunk: Invoice | null) => chunk === null);
+
+  if (!itemsToInsertForAllChunks.hasFailedWorkItems && !hasNullParsedChunks) {
     for (const itemsToInsertForChunk of itemsToInsertForAllChunks.itemsToInsertForChunks) {
       handledChunkCount++;
 
@@ -135,18 +127,21 @@ export const processInvoice = async (path: string, blobName: string, base64Data:
       }
 
       await insertWorkItems(itemsToInsertForChunk);
+      processedInvoice.insertedWorkItemCount += itemsToInsertForChunk.workMongoItemList.length;
     }
-  } else {
+  } else if (invoiceNumber) {
     logger.warn("Invoice number '{InvoiceNumber}' has failed work items and will NOT be inserted to DB", invoiceNumber);
   }
 
   const chunkEndTime: number = Date.now();
   logger.info(
-    "Chunk processing for {ChunkLength} PDF chunks completed in {Duration} minutes",
+    "Chunk processing for {ChunkLength} PDF chunks completed in {Duration} minutes. Inserted {InsertedWorkItemCount} work items",
     chunkedParts.length,
-    (chunkEndTime - chunkStartTime) / 1000 / 60
+    (chunkEndTime - chunkStartTime) / 1000 / 60,
+    processedInvoice.insertedWorkItemCount
   );
 
-  processedInvoice.processedSuccessfully = processedInvoice.parsedInvoiceChunks.length === handledChunkCount;
+  processedInvoice.processedSuccessfully =
+    processedInvoice.parsedInvoiceChunks.length === handledChunkCount && !itemsToInsertForAllChunks.hasFailedWorkItems && !hasNullParsedChunks;
   return processedInvoice;
 };
