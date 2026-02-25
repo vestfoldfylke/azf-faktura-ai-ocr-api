@@ -1,40 +1,4 @@
-import type { BlobStorageInfo } from "./types/faktura-ai.js";
-
-export const getBlobStorageInfo = (): BlobStorageInfo => {
-  const connectionString: string = process.env.BLOB_STORAGE_CONNECTION_STRING;
-  const containerName: string = process.env.BLOB_STORAGE_CONTAINER_NAME;
-  const failedFolderName: string = process.env.BLOB_STORAGE_FAILED_FOLDER_NAME;
-  const finishedFolderName: string = process.env.BLOB_STORAGE_FINISHED_FOLDER_NAME;
-  const queueFolderName: string = process.env.BLOB_STORAGE_QUEUE_FOLDER_NAME;
-
-  if (!connectionString) {
-    throw new Error("BLOB_STORAGE_CONNECTION_STRING is not set in environment variables");
-  }
-
-  if (!containerName) {
-    throw new Error("BLOB_STORAGE_CONTAINER_NAME is not set in environment variables");
-  }
-
-  if (!failedFolderName) {
-    throw new Error("BLOB_STORAGE_FAILED_FOLDER_NAME is not set in environment variables");
-  }
-
-  if (!finishedFolderName) {
-    throw new Error("BLOB_STORAGE_FINISHED_FOLDER_NAME is not set in environment variables");
-  }
-
-  if (!queueFolderName) {
-    throw new Error("BLOB_STORAGE_QUEUE_FOLDER_NAME is not set in environment variables");
-  }
-
-  return {
-    connectionString,
-    containerName,
-    failedFolderName,
-    finishedFolderName,
-    queueFolderName
-  };
-};
+import type { SharePointConfig } from "./types/sharepoint.js";
 
 export const getMistralApiKey = (): string => {
   const apiKey = process.env.MISTRAL_API_KEY;
@@ -84,6 +48,36 @@ export const getMongoDbDatabaseName = (): string => {
   }
 
   return databaseName;
+};
+
+export const getSharePointConfig = (): SharePointConfig => {
+  const siteId: string = process.env.SP_SITE_ID;
+  const listId: string = process.env.SP_LIST_ID;
+  const handledErrorThreshold: number = parseInt(process.env.SP_HANDLED_ERROR_THRESHOLD ?? "3", 10);
+  const unhandledTop: number = parseInt(process.env.SP_LIST_UNHANDLED_TOP ?? "3", 10);
+
+  if (!siteId) {
+    throw new Error("SP_SITE_ID is not set in environment variables");
+  }
+
+  if (!listId) {
+    throw new Error("SP_LIST_ID is not set in environment variables");
+  }
+
+  if (!Number.isInteger(handledErrorThreshold) || handledErrorThreshold < 1) {
+    throw new Error("SP_HANDLED_ERROR_THRESHOLD must be a positive integer");
+  }
+
+  if (!Number.isInteger(unhandledTop) || unhandledTop < 1) {
+    throw new Error("SP_LIST_UNHANDLED_TOP must be a positive integer");
+  }
+
+  return {
+    handledErrorThreshold,
+    listId,
+    siteId,
+    unhandledTop
+  };
 };
 
 /**

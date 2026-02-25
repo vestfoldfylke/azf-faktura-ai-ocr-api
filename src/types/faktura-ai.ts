@@ -1,14 +1,6 @@
 import type { WorkMongoItem } from "./zod-mongo.js";
 import type { Invoice, WorkItemList } from "./zod-ocr.js";
 
-export type BlobStorageInfo = {
-  connectionString: string;
-  containerName: string;
-  failedFolderName: string;
-  finishedFolderName: string;
-  queueFolderName: string;
-};
-
 export type CsvItem = Omit<
   WorkMongoItem,
   "department" | "extras" | "id" | "insertedDate" | "pdfChunk" | "pdfChunkPageNumber" | "pdfOriginalPageNumber"
@@ -30,6 +22,7 @@ export type ProblematicCsvItem = Omit<CsvItem, "fromDateTime" | "toDateTime"> & 
 export type ProcessedInvoice = {
   alreadyProcessed: boolean;
   invoiceNumber: string | null;
+  insertedWorkItemCount: number;
   parsedInvoiceChunks: (Invoice | null)[];
   processedSuccessfully: boolean;
 };
