@@ -1,6 +1,9 @@
 import { logger } from "@vestfoldfylke/loglady";
+import { count, countInc } from "@vestfoldfylke/vestfold-metrics";
 
 import { getMaxPagesPerChunk, processAlreadyProcessedInvoices } from "../config.js";
+
+import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
 
 import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai.js";
 import type { Invoice } from "../types/zod-ocr.js";
@@ -14,6 +17,7 @@ type ItemsToInsertForAllChunks = {
   itemsToInsertForChunks: ItemsToInsert[];
 };
 
+const MetricsFilePrefix = "ProcessInvoice";
 const MAX_PAGES_PER_CHUNK: number = getMaxPagesPerChunk();
 const PROCESS_ALREADY_PROCESSED_INVOICES: boolean = processAlreadyProcessedInvoices();
 
@@ -119,6 +123,8 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
   const hasNullParsedChunks: boolean = processedInvoice.parsedInvoiceChunks.some((chunk: Invoice | null) => chunk === null);
 
   if (!itemsToInsertForAllChunks.hasFailedWorkItems && !hasNullParsedChunks) {
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_Invoice`, "Number of invoices processed", [MetricsResultLabelName, MetricsResultSuccessLabelValue]);
+
     for (const itemsToInsertForChunk of itemsToInsertForAllChunks.itemsToInsertForChunks) {
       handledChunkCount++;
 
@@ -128,9 +134,15 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
 
       await insertWorkItems(itemsToInsertForChunk);
       processedInvoice.insertedWorkItemCount += itemsToInsertForChunk.workMongoItemList.length;
+      countInc(
+        `${MetricsPrefix}_${MetricsFilePrefix}_InvoiceWorkItemsInserted`,
+        "Number of work items from invoices inserted",
+        itemsToInsertForChunk.workMongoItemList.length
+      );
     }
   } else if (invoiceNumber) {
     logger.warn("Invoice number '{InvoiceNumber}' has failed work items and will NOT be inserted to DB", invoiceNumber);
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_Invoice`, "Number of invoices processed", [MetricsResultLabelName, MetricsResultFailedLabelValue]);
   }
 
   const chunkEndTime: number = Date.now();

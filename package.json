@@ -35,15 +35,16 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
     "@microsoft/microsoft-graph-types": "^2.43.1",
-    "@types/node": "^25.3.0",
+    "@types/node": "^25.3.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@azure/functions": "^4.11.2",
     "@azure/identity": "^4.13.0",
-    "@mistralai/mistralai": "^1.14.0",
+    "@mistralai/mistralai": "^1.14.1",
     "@vestfoldfylke/loglady": "^1.5.0",
+    "@vestfoldfylke/vestfold-metrics": "^1.0.0",
     "mongodb": "^7.1.0",
     "pdf-lib": "^1.17.1",
     "source-map-support": "^0.5.21",

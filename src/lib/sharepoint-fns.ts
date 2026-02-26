@@ -1,35 +1,49 @@
 import { type AccessToken, DefaultAzureCredential } from "@azure/identity";
 import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
+import { count, countInc } from "@vestfoldfylke/vestfold-metrics";
 
-import type { CollectionResponse, HandledType, MarkItemAsHandledRequest } from "../types/sharepoint.js";
+import {
+  MetricsPrefix,
+  MetricsResultFailedLabelValue,
+  MetricsResultLabelName,
+  MetricsResultSuccessLabelValue,
+  SharePointStatusFailedNoRetry,
+  SharePointStatusFailedWillRetry,
+  SharePointStatusQueued
+} from "../constants.js";
+
+import type { CollectionResponse, MarkItemAsHandledRequest, Status } from "../types/sharepoint.js";
 
 const credential = new DefaultAzureCredential();
 
 const GRAPH_BASE_URL: string = "https://graph.microsoft.com/v1.0";
 const GRAPH_SCOPE: string = "https://graph.microsoft.com/.default";
+const MetricsFilePrefix = "SharepointFns";
 
 export const getItemContentAsBase64 = async (siteId: string, listId: string, itemId: string): Promise<string> => {
   const endpoint: string = `sites/${siteId}/lists/${listId}/items/${itemId}/driveItem/content`;
-  const response: Response = await get(endpoint, null);
+  const response: Response = await _getItemContentAsBase64(endpoint);
   const arrayBuffer: ArrayBuffer = await response.arrayBuffer();
 
   return Buffer.from(arrayBuffer).toString("base64");
 };
 
 export const getListItems = async (siteId: string, listId: string, handledErrorThreshold: number, unhandledTop: number): Promise<ListItem[]> => {
-  const endpoint: string = `sites/${siteId}/lists/${listId}/items?expand=fields(select=HandledCount,HandledType,InsertedCount,InvoiceNumber,DocIcon,LinkFilename)&$filter=fields/HandledType eq 'NotHandled' OR (fields/HandledType eq 'Error' AND fields/HandledCount lt ${handledErrorThreshold})&$top=${unhandledTop}`;
-  const response: Response = await get(endpoint);
+  const endpoint: string = `sites/${siteId}/lists/${listId}/items?expand=fields(select=HandledCount,Status,InsertedCount,InvoiceNumber,LinkFilename)&$filter=(fields/Status eq '${SharePointStatusQueued}' OR fields/Status eq '${SharePointStatusFailedWillRetry}') AND fields/HandledCount lt ${handledErrorThreshold} AND fields/DocIcon eq 'pdf'&$top=${unhandledTop}`;
+  const response: Response = await _getListItems(endpoint);
   const listItems: CollectionResponse<ListItem> = await response.json();
 
-  return listItems.value.filter((item: ListItem) => "DocIcon" in item.fields && item.fields.DocIcon === "pdf");
+  countInc(`${MetricsPrefix}_${MetricsFilePrefix}_GetListItems`, "Number of list items retrieved", listItems.value.length);
+
+  return listItems.value;
 };
 
 export const markItemAsHandled = async (
   siteId: string,
   listId: string,
   itemId: string,
-  handledType: HandledType,
+  status: Status,
   handledCount: number,
   insertedCount: number,
   invoiceNumber: string,
@@ -38,7 +52,7 @@ export const markItemAsHandled = async (
   const endpoint: string = `sites/${siteId}/lists/${listId}/items/${itemId}/fields`;
   const body: MarkItemAsHandledRequest = {
     HandledAt: new Date().toISOString(),
-    HandledType: handledType,
+    Status: status,
     HandledCount: handledCount,
     InsertedCount: insertedCount,
     InvoiceNumber: invoiceNumber,
@@ -46,22 +60,16 @@ export const markItemAsHandled = async (
   };
 
   await patch<MarkItemAsHandledRequest, ListItem>(endpoint, body);
-  if (handledType === "Error") {
-    logger.warn(
-      "Marked item with Id {ItemId} as {HandledType} (HandledCount: {HandledCount}): {ErrorReason}",
-      itemId,
-      handledType,
-      handledCount,
-      errorReason
-    );
+  if (status === SharePointStatusFailedNoRetry) {
+    logger.warn("Marked item with Id {ItemId} as {Status} (HandledCount: {HandledCount}): {ErrorReason}", itemId, status, handledCount, errorReason);
 
     return;
   }
 
-  logger.info("Marked item with Id {ItemId} as {HandledType} (HandledCount: {HandledCount})", itemId, handledType, handledCount);
+  logger.info("Marked item with Id {ItemId} as {Status} (HandledCount: {HandledCount})", itemId, status, handledCount);
 };
 
-const get = async (endpoint: string, contentType: string | null = "application/json"): Promise<Response> => {
+const _getItemContentAsBase64 = async (endpoint: string): Promise<Response> => {
   const token: string = await getToken(GRAPH_SCOPE);
 
   const request: RequestInit = {
@@ -71,10 +79,25 @@ const get = async (endpoint: string, contentType: string | null = "application/j
     }
   };
 
-  if (contentType) {
-    request.headers["Content-Type"] = contentType;
-  }
+  return await get(endpoint, request);
+};
 
+const _getListItems = async (endpoint: string): Promise<Response> => {
+  const token: string = await getToken(GRAPH_SCOPE);
+
+  const request: RequestInit = {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly"
+    }
+  };
+
+  return await get(endpoint, request);
+};
+
+const get = async (endpoint: string, request: RequestInit): Promise<Response> => {
   logger.info("Making GET request to Microsoft Graph API at endpoint '{Endpoint}'", endpoint);
   const response: Response = await fetch(`${GRAPH_BASE_URL}/${endpoint}`, request);
 
@@ -88,9 +111,17 @@ const get = async (endpoint: string, contentType: string | null = "application/j
       response.statusText,
       errorText
     );
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_GetRequest`, "Number of GET requests to Graph SharePoint", [
+      MetricsResultLabelName,
+      MetricsResultFailedLabelValue
+    ]);
     throw new Error(`Microsoft Graph API GET request failed with status ${response.status}: ${response.statusText}`);
   }
 
+  count(`${MetricsPrefix}_${MetricsFilePrefix}_GetRequest`, "Number of GET requests to Graph SharePoint", [
+    MetricsResultLabelName,
+    MetricsResultSuccessLabelValue
+  ]);
   return response;
 };
 
@@ -117,10 +148,20 @@ const patch = async <TRequest, UResponse>(endpoint: string, body: TRequest): Pro
       response.statusText,
       errorText
     );
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_PatchRequest`, "Number of PATCH requests to Graph SharePoint", [
+      MetricsResultLabelName,
+      MetricsResultFailedLabelValue
+    ]);
     throw new Error(`Microsoft Graph API PATCH request failed with status ${response.status}: ${response.statusText}`);
   }
 
-  return (await response.json()) as UResponse;
+  const jsonResponse: UResponse = await response.json();
+  count(`${MetricsPrefix}_${MetricsFilePrefix}_PatchRequest`, "Number of PATCH requests to Graph SharePoint", [
+    MetricsResultLabelName,
+    MetricsResultSuccessLabelValue
+  ]);
+
+  return jsonResponse;
 };
 
 const getToken = async (scope: string): Promise<string> => {

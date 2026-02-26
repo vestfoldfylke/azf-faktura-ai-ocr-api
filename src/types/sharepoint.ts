@@ -1,13 +1,24 @@
+import type {
+  SharePointStatusFailedNoRetry,
+  SharePointStatusFailedWillRetry,
+  SharePointStatusQueued,
+  SharePointStatusSuccess
+} from "../constants.js";
+
 export type CollectionResponse<T> = {
   "@odata.context": string;
   value: T[];
 };
 
-export type HandledType = "NotHandled" | "Success" | "Error";
+export type Status =
+  | typeof SharePointStatusQueued
+  | typeof SharePointStatusFailedWillRetry
+  | typeof SharePointStatusFailedNoRetry
+  | typeof SharePointStatusSuccess;
 
 export type MarkItemAsHandledRequest = {
   HandledAt: string;
-  HandledType: HandledType;
+  Status: Status;
   HandledCount: number;
   InsertedCount: number;
   InvoiceNumber: string;
