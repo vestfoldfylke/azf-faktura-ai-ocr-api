@@ -2,6 +2,15 @@ import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { getSharePointConfig } from "../config.js";
+import {
+  SharePointErrorReasonAlreadyProcessed,
+  SharePointErrorReasonFailed,
+  SharePointErrorReasonNoRetry,
+  SharePointErrorReasonWillRetry,
+  SharePointStatusFailedNoRetry,
+  SharePointStatusFailedWillRetry,
+  SharePointStatusSuccess
+} from "../constants.js";
 
 import type { ProcessedInvoice } from "../types/faktura-ai.js";
 import type { SharePointConfig } from "../types/sharepoint.js";
@@ -50,13 +59,13 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
         sharePointConfig.siteId,
         sharePointConfig.listId,
         listItem.id,
-        "Success",
+        SharePointStatusSuccess,
         handledCount,
         insertedCount,
         invoiceNumber,
-        "Faktura har allerede blitt behandlet tidligere"
+        SharePointErrorReasonAlreadyProcessed
       );
-      logger.info("Item with Id {ItemId} already processed. Marked as handled in SharePoint", listItem.id);
+      logger.info("Item with Id {ItemId} already processed. Marked as {Status} in SharePoint", listItem.id, SharePointStatusSuccess);
 
       continue;
     }
@@ -66,38 +75,41 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
         sharePointConfig.siteId,
         sharePointConfig.listId,
         listItem.id,
-        "Success",
+        SharePointStatusSuccess,
         handledCount,
         processedInvoice.insertedWorkItemCount,
         processedInvoice.invoiceNumber
       );
-      logger.info("Item with Id {ItemId} processed successfully. Marked as handled in SharePoint", listItem.id);
+      logger.info("Item with Id {ItemId} processed successfully. Marked as {Status} in SharePoint", listItem.id, SharePointStatusSuccess);
 
       continue;
     }
 
-    const retryMessage: string =
-      handledCount < sharePointConfig.handledErrorThreshold
-        ? "OCR-lesing vil bli forsøkt igjen ved neste kjøring"
-        : "Denne filen vil ikke bli forsøkt igjen";
+    const willRetry: boolean = handledCount < sharePointConfig.handledErrorThreshold;
+    const retryMessage: string = willRetry ? SharePointErrorReasonWillRetry : SharePointErrorReasonNoRetry;
 
     await markItemAsHandled(
       sharePointConfig.siteId,
       sharePointConfig.listId,
       listItem.id,
-      "Error",
+      willRetry ? SharePointStatusFailedWillRetry : SharePointStatusFailedNoRetry,
       handledCount,
       processedInvoice.insertedWorkItemCount,
       processedInvoice.invoiceNumber ?? "N/A",
-      `OCR-lesing mislyktes. ${retryMessage}`
+      `${SharePointErrorReasonFailed} ${retryMessage}`
     );
 
-    if (handledCount < sharePointConfig.handledErrorThreshold) {
-      logger.warn("Item with Id {ItemId} failed to process. Marked as error in SharePoint. Will retry processing this item next time", listItem.id);
+    if (willRetry) {
+      logger.warn(
+        "Item with Id {ItemId} failed to process. Marked as {Status} in SharePoint. Will retry processing this item next time",
+        listItem.id,
+        SharePointStatusFailedWillRetry
+      );
     } else {
       logger.error(
-        "Item with Id {ItemId} failed to process. Marked as error in SharePoint. Reached maximum retry attempts ({MaxAttempts}). Will not retry this item anymore",
+        "Item with Id {ItemId} failed to process. Marked as {Status} in SharePoint. Reached maximum retry attempts ({MaxAttempts}). Will not retry this item anymore",
         listItem.id,
+        SharePointStatusFailedNoRetry,
         sharePointConfig.handledErrorThreshold
       );
     }
