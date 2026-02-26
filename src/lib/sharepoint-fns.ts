@@ -1,6 +1,9 @@
 import { type AccessToken, DefaultAzureCredential } from "@azure/identity";
 import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
+import { count, countInc } from "@vestfoldfylke/vestfold-metrics";
+
+import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
 
 import type { CollectionResponse, HandledType, MarkItemAsHandledRequest } from "../types/sharepoint.js";
 
@@ -8,6 +11,7 @@ const credential = new DefaultAzureCredential();
 
 const GRAPH_BASE_URL: string = "https://graph.microsoft.com/v1.0";
 const GRAPH_SCOPE: string = "https://graph.microsoft.com/.default";
+const MetricsFilePrefix = "SharepointFns";
 
 export const getItemContentAsBase64 = async (siteId: string, listId: string, itemId: string): Promise<string> => {
   const endpoint: string = `sites/${siteId}/lists/${listId}/items/${itemId}/driveItem/content`;
@@ -22,7 +26,10 @@ export const getListItems = async (siteId: string, listId: string, handledErrorT
   const response: Response = await get(endpoint);
   const listItems: CollectionResponse<ListItem> = await response.json();
 
-  return listItems.value.filter((item: ListItem) => "DocIcon" in item.fields && item.fields.DocIcon === "pdf");
+  const pdfItems: ListItem[] = listItems.value.filter((item: ListItem) => "DocIcon" in item.fields && item.fields.DocIcon === "pdf");
+  countInc(`${MetricsPrefix}_${MetricsFilePrefix}_GetListItems`, "Number of list items retrieved", pdfItems.length);
+
+  return pdfItems;
 };
 
 export const markItemAsHandled = async (
@@ -88,9 +95,17 @@ const get = async (endpoint: string, contentType: string | null = "application/j
       response.statusText,
       errorText
     );
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_GetRequest`, "Number of GET requests to Graph SharePoint", [
+      MetricsResultLabelName,
+      MetricsResultFailedLabelValue
+    ]);
     throw new Error(`Microsoft Graph API GET request failed with status ${response.status}: ${response.statusText}`);
   }
 
+  count(`${MetricsPrefix}_${MetricsFilePrefix}_GetRequest`, "Number of GET requests to Graph SharePoint", [
+    MetricsResultLabelName,
+    MetricsResultSuccessLabelValue
+  ]);
   return response;
 };
 
@@ -117,10 +132,20 @@ const patch = async <TRequest, UResponse>(endpoint: string, body: TRequest): Pro
       response.statusText,
       errorText
     );
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_PatchRequest`, "Number of PATCH requests to Graph SharePoint", [
+      MetricsResultLabelName,
+      MetricsResultFailedLabelValue
+    ]);
     throw new Error(`Microsoft Graph API PATCH request failed with status ${response.status}: ${response.statusText}`);
   }
 
-  return (await response.json()) as UResponse;
+  const jsonResponse: UResponse = await response.json();
+  count(`${MetricsPrefix}_${MetricsFilePrefix}_PatchRequest`, "Number of PATCH requests to Graph SharePoint", [
+    MetricsResultLabelName,
+    MetricsResultSuccessLabelValue
+  ]);
+
+  return jsonResponse;
 };
 
 const getToken = async (scope: string): Promise<string> => {

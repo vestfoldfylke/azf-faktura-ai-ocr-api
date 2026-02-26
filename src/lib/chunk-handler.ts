@@ -1,6 +1,9 @@
 import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
+import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { ZodSafeParseResult } from "zod";
+
+import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
 
 import type { ItemsToInsert } from "../types/faktura-ai.js";
 import { WorkItemMongoSchema, type WorkMongoItem } from "../types/zod-mongo.js";
@@ -8,6 +11,8 @@ import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemL
 
 import { base64Ocr } from "./mistral-ocr.js";
 import { insertWorkItemsToDb } from "./mongodb-fns.js";
+
+const MetricsFilePrefix = "ChunkHandler";
 
 type ValidWorkItem = {
   reason?: string;
@@ -117,13 +122,20 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
     includeImageBase64: false
   });
 
+  const endTime: number = Date.now();
+  const durationSeconds: number = (endTime - startTime) / 1000;
+
   if (!response) {
-    logger.warn("OCR processing failed for pdf chunk. Skipping");
+    logger.warn("OCR processing failed for pdf chunk in {Duration} s. Skipping", durationSeconds);
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrChunk`, "Number of OCR chunks processed", [
+      MetricsResultLabelName,
+      MetricsResultFailedLabelValue
+    ]);
     return null;
   }
 
-  const endTime: number = Date.now();
-  logger.info("OCR completed in {Duration} s.", (endTime - startTime) / 1000);
+  count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrChunk`, "Number of OCR chunks processed", [MetricsResultLabelName, MetricsResultSuccessLabelValue]);
+  logger.info("OCR completed in {Duration} s.", durationSeconds);
 
   if (!response.documentAnnotation) {
     return null;
@@ -131,10 +143,18 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
 
   const parsedInvoice: ZodSafeParseResult<Invoice> = InvoiceSchema.safeParse(JSON.parse(response.documentAnnotation));
   if (!parsedInvoice.success) {
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrDAChunk`, "Number of OCR document annotation chunks processed", [
+      MetricsResultLabelName,
+      MetricsResultFailedLabelValue
+    ]);
     logger.errorException(parsedInvoice.error, "Failed to parse documentAnnotation into a type of Invoice. Skipping'");
     return null;
   }
 
+  count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrDAChunk`, "Number of OCR document annotation chunks processed", [
+    MetricsResultLabelName,
+    MetricsResultSuccessLabelValue
+  ]);
   return parsedInvoice.data;
 };
 
