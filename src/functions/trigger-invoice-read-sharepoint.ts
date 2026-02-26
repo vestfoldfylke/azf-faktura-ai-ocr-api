@@ -3,6 +3,7 @@ import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { handleInvoices } from "../lib/handle-invoices.js";
+import { errorTriggerHandling } from "../middleware/error-handling.js";
 
 const triggerInvoiceRead = async (_request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> => {
   logger.info("Manually triggered to read invoices from SharePoint list");
@@ -17,5 +18,6 @@ const triggerInvoiceRead = async (_request: HttpRequest, _context: InvocationCon
 app.http("triggerInvoiceRead", {
   methods: ["GET"],
   authLevel: "function",
-  handler: triggerInvoiceRead
+  handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> =>
+    await errorTriggerHandling(request, context, triggerInvoiceRead)
 });

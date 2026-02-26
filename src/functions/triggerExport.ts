@@ -3,6 +3,7 @@ import { logger } from "@vestfoldfylke/loglady";
 import type { WithId } from "mongodb";
 
 import { getWorkItemsInDateRangeFromDb } from "../lib/mongodb-fns.js";
+import { errorTriggerHandling } from "../middleware/error-handling.js";
 
 import type { CsvItem, ProblematicCsvItem } from "../types/faktura-ai.js";
 import type { WorkMongoItem } from "../types/zod-mongo.js";
@@ -151,5 +152,6 @@ const triggerExport = async (request: HttpRequest, _context: InvocationContext):
 app.http("triggerExport", {
   methods: ["GET"],
   authLevel: "function",
-  handler: triggerExport
+  handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> =>
+    await errorTriggerHandling(request, context, triggerExport)
 });
