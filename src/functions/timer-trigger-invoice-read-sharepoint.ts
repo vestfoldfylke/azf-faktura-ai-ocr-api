@@ -11,6 +11,6 @@ export async function timerTrigger(_myTimer: Timer, _context: InvocationContext)
 }
 
 app.timer("timerTrigger", {
-  schedule: "0 */1 * * * *",
+  schedule: "%InvoiceReadSchedule%",
   handler: async (timer: Timer, context: InvocationContext): Promise<void> => await errorTimerHandling(timer, context, timerTrigger, "timerTrigger")
 });
