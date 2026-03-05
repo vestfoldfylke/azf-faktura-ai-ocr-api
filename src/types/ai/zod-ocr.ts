@@ -25,7 +25,7 @@ const ProductSchema = z.object({
     )
 });
 
-export const WorkItemSchema = z
+const WorkItemSchema = z
   .object({
     department: z.string().nullish().describe("Avdeling, enhet eller team som utførte arbeidet"),
     employee: z.string().describe("Navn på ansatt eller kontraktør som utførte arbeidet. SKAL være en tom streng hvis ikke tilgjengelig"),

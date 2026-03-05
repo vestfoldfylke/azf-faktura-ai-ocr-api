@@ -1,12 +1,12 @@
 import { logger } from "@vestfoldfylke/loglady";
 import { count, countInc } from "@vestfoldfylke/vestfold-metrics";
 
-import { getMaxPagesPerChunk, processAlreadyProcessedInvoices } from "../config.js";
+import { getOcrMaxPagesPerPdfChunk, processAlreadyProcessedInvoices } from "../config.js";
 
 import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
 
+import type { Invoice } from "../types/ai/zod-ocr.js";
 import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai.js";
-import type { Invoice } from "../types/zod-ocr.js";
 
 import { getItemsToInsert, handleOcrChunk, insertWorkItems } from "./chunk-handler.js";
 import { invoiceNumberExistsInDb } from "./mongodb-fns.js";
@@ -18,7 +18,7 @@ type ItemsToInsertForAllChunks = {
 };
 
 const MetricsFilePrefix = "ProcessInvoice";
-const MAX_PAGES_PER_CHUNK: number = getMaxPagesPerChunk();
+const OCR_MAX_PAGES_PER_CHUNK: number = getOcrMaxPagesPerPdfChunk();
 const PROCESS_ALREADY_PROCESSED_INVOICES: boolean = processAlreadyProcessedInvoices();
 
 const shouldProcessInvoice = async (invoiceNumber: string): Promise<boolean> => {
@@ -42,13 +42,13 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
   let invoiceNumber: string | null = null;
 
   logger.info(
-    "processing PDF with maxPages: {MaxPagesPerChunk} and process already processed invoices: {ProcessAlreadyProcessedInvoices}",
-    MAX_PAGES_PER_CHUNK,
+    "processing PDF with maxPages: {OcrMaxPagesPerChunk} and process already processed invoices: {ProcessAlreadyProcessedInvoices}",
+    OCR_MAX_PAGES_PER_CHUNK,
     PROCESS_ALREADY_PROCESSED_INVOICES
   );
 
   // PDF handling
-  const chunkedParts: string[] = await chunkPdf(base64Data, MAX_PAGES_PER_CHUNK);
+  const chunkedParts: string[] = await chunkPdf(base64Data, OCR_MAX_PAGES_PER_CHUNK);
   logger.info("Is pdf chunked? {IsChunked}. Chunks: {ChunkLength}", chunkedParts.length > 1, chunkedParts.length);
 
   // chunk handling
@@ -109,7 +109,7 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
       }
     }
 
-    const itemsToInsert: ItemsToInsert = getItemsToInsert(invoiceResponse.workLists, invoiceNumber, chunkIndex, MAX_PAGES_PER_CHUNK);
+    const itemsToInsert: ItemsToInsert = getItemsToInsert(invoiceResponse.workLists, invoiceNumber, chunkIndex, OCR_MAX_PAGES_PER_CHUNK);
     itemsToInsertForAllChunks.hasFailedWorkItems = itemsToInsertForAllChunks.hasFailedWorkItems || itemsToInsert.failedWorkItemIds.length > 0;
     itemsToInsertForAllChunks.itemsToInsertForChunks.push(itemsToInsert);
 

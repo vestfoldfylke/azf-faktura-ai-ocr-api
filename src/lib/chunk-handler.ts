@@ -1,18 +1,14 @@
-import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
-import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { ZodSafeParseResult } from "zod";
-
-import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
-
+import type { IAIAgent } from "../types/ai/ai-agent.js";
+import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/ai/zod-ocr.js";
 import type { ItemsToInsert } from "../types/faktura-ai.js";
 import { WorkItemMongoSchema, type WorkMongoItem } from "../types/zod-mongo.js";
-import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
-import { base64Ocr } from "./mistral-ocr.js";
+import { AIAgent } from "./ai/AIAgent.js";
 import { insertWorkItemsToDb } from "./mongodb-fns.js";
 
-const MetricsFilePrefix = "ChunkHandler";
+const aiAgent: IAIAgent = new AIAgent();
 
 type ValidWorkItem = {
   reason?: string;
@@ -116,7 +112,7 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
   const startTime: number = Date.now();
   logger.info("OCR processing pdf chunk");
 
-  const response: OCRResponse | null = await base64Ocr(base64Data, {
+  const response: ZodSafeParseResult<Invoice> | null = await aiAgent.ocrToStructuredJson(base64Data, {
     bboxAnnotationFormat: ImageSchema,
     documentAnnotationFormat: InvoiceSchema,
     includeImageBase64: false
@@ -126,36 +122,11 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
   const durationSeconds: number = (endTime - startTime) / 1000;
 
   if (!response) {
-    logger.warn("OCR processing failed for pdf chunk in {Duration} s. Skipping", durationSeconds);
-    count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrChunk`, "Number of OCR chunks processed", [
-      MetricsResultLabelName,
-      MetricsResultFailedLabelValue
-    ]);
+    logger.warn("OCR processing failed for PDF chunk in {Duration} s. Skipping", durationSeconds);
     return null;
   }
 
-  count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrChunk`, "Number of OCR chunks processed", [MetricsResultLabelName, MetricsResultSuccessLabelValue]);
-  logger.info("OCR completed in {Duration} s.", durationSeconds);
-
-  if (!response.documentAnnotation) {
-    return null;
-  }
-
-  const parsedInvoice: ZodSafeParseResult<Invoice> = InvoiceSchema.safeParse(JSON.parse(response.documentAnnotation));
-  if (!parsedInvoice.success) {
-    count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrDAChunk`, "Number of OCR document annotation chunks processed", [
-      MetricsResultLabelName,
-      MetricsResultFailedLabelValue
-    ]);
-    logger.errorException(parsedInvoice.error, "Failed to parse documentAnnotation into a type of Invoice. Skipping'");
-    return null;
-  }
-
-  count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrDAChunk`, "Number of OCR document annotation chunks processed", [
-    MetricsResultLabelName,
-    MetricsResultSuccessLabelValue
-  ]);
-  return parsedInvoice.data;
+  return response.data;
 };
 
 export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, pdfChunk: number, maxPagesPerChunk: number): ItemsToInsert => {

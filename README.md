@@ -1,14 +1,15 @@
 # azf-faktura-ai-ocr-api
 
-A project that uses Mistral OCR to extract structured data from invoices and attachments.
+A project that uses Mistral OCR or OpenAI to extract structured data from invoices and attachments.
 
-This project uses Mistral AI's OCR model to automatically extract structured information from PDF invoices, including:
+This project uses Mistral AI's OCR model or OpenAI to automatically extract structured information from PDF invoices, including:
 - Invoice information (invoice number, date, due date, KID number)
 - Timesheets with details about employees, projects, and hours
 
 ## Prerequisites
 
 - Mistral AI API key [console.mistral.ai](https://console.mistral.ai)
+- OpenAI API key [platform.openai.com](https://platform.openai.com/api-keys)
 - MongoDB database
 - SharePoint site and list for unhandled documents (SP_SITE_ID, SP_LIST_ID)
   - App registration (AZURE_CLIENT_ID) needs Sites.Selected application permission with write access to the SharePoint site defined in SP_SITE_ID. [See documentation here](#)
@@ -20,7 +21,7 @@ This project uses Mistral AI's OCR model to automatically extract structured inf
 ```bash
 git clone <repository-url>
 
-cd faktura-ai-ocr
+cd azf-faktura-ai-ocr-api
 
 npm install
 ```
@@ -66,7 +67,8 @@ Create a `local.settings.json` file in the project root with the following conte
     "AZURE_CLIENT_SECRET": "client-secret-here",
     "AZURE_TENANT_ID": "tenant-id-here",
     "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-    "MISTRAL_MAX_PAGES_PER_CHUNK": "2",
+    "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
+    "OCR_MAX_PAGES_PER_CHUNK": "2",
     "OCR_PROCESS_ALREADY_PROCESSED_FILES": "false",
     "MONGODB_CONNECTION_STRING": "mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=azf-faktura-ai-ocr-api-local",
     "MONGODB_COLLECTION_NAME": "<db_collection_name>",
@@ -89,7 +91,7 @@ npm run start
 - This will process PDF files in the SharePoint site specified in `SP_SITE_ID` from the list specified in `SP_LIST_ID`.
   - Split PDF
     - If the PDF exceeds the max page limit, it will be split into chunks.
-  - Each chunk or full PDF will be sent to Mistral for OCR processing
+  - Each chunk or full PDF will be sent to Mistral or OpenAI for OCR processing
     - Successfully parsed files will have metadata updated on them in SharePoint.
     - Successfully parsed WorkItems will be saved to MongoDB.
-    - Files failed to be processed by Mistral OCR OR document annotations from Mistral OCR that failed to be parsed, will have metadata updated on them in SharePoint. Failed files will be retried up to the number of times specified in `SP_HANDLED_ERROR_THRESHOLD`. After that, they will no longer be attempted to be processed and will require manual handling.
+    - Files failed to be processed by Mistral OCR or OpenAI OR document annotations from Mistral OCR or OpenAI that failed to be parsed, will have metadata updated on them in SharePoint. Failed files will be retried up to the number of times specified in `SP_HANDLED_ERROR_THRESHOLD`. After that, they will no longer be attempted to be processed and will require manual handling.

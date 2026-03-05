@@ -1,5 +1,5 @@
+import type { Invoice, WorkItemList } from "./ai/zod-ocr.js";
 import type { WorkMongoItem } from "./zod-mongo.js";
-import type { Invoice, WorkItemList } from "./zod-ocr.js";
 
 export type CsvItem = Omit<
   WorkMongoItem,
