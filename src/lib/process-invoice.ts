@@ -6,7 +6,7 @@ import { getOcrMaxPagesPerPdfChunk, processAlreadyProcessedInvoices } from "../c
 import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
 
 import type { Invoice } from "../types/ai/zod-ocr.js";
-import type { ItemsToInsert, ProcessedInvoice } from "../types/faktura-ai.js";
+import type { ItemsToInsert, OcrProcessedResponse, ProcessedInvoice } from "../types/faktura-ai.js";
 
 import { getItemsToInsert, handleOcrChunk, insertWorkItems } from "./chunk-handler.js";
 import { invoiceNumberExistsInDb } from "./mongodb-fns.js";
@@ -73,21 +73,21 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
       prefix: `${logFileIndexStr} - ${filename} - chunks - [${chunkIndex} / ${chunkedParts.length}]`
     });
 
-    const invoiceResponse: Invoice | null = await handleOcrChunk(chunkedParts[i]);
-    if (!invoiceResponse) {
+    const invoiceResponse: OcrProcessedResponse | null = await handleOcrChunk(chunkedParts[i]);
+    if (!invoiceResponse || !invoiceResponse.invoice) {
       if (i === 0) {
         logger.error("OCR processing failed for first chunk. Skipping invoice");
-        processedInvoice.parsedInvoiceChunks.push(invoiceResponse);
+        processedInvoice.parsedInvoiceChunks.push(null);
         break;
       }
 
       logger.error("OCR processing failed for chunk. Skipping rest of invoice");
-      processedInvoice.parsedInvoiceChunks.push(invoiceResponse);
+      processedInvoice.parsedInvoiceChunks.push(null);
       break;
     }
 
     if (i === 0) {
-      invoiceNumber = invoiceResponse.invoice?.number || null;
+      invoiceNumber = invoiceResponse.invoice.invoice?.number || null;
 
       if (!invoiceNumber) {
         logger.error("No invoice number found from OCR. Skipping invoice");
@@ -109,11 +109,11 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
       }
     }
 
-    const itemsToInsert: ItemsToInsert = getItemsToInsert(invoiceResponse.workLists, invoiceNumber, chunkIndex, OCR_MAX_PAGES_PER_CHUNK);
+    const itemsToInsert: ItemsToInsert = getItemsToInsert(invoiceResponse, invoiceNumber, chunkIndex, OCR_MAX_PAGES_PER_CHUNK);
     itemsToInsertForAllChunks.hasFailedWorkItems = itemsToInsertForAllChunks.hasFailedWorkItems || itemsToInsert.failedWorkItemIds.length > 0;
     itemsToInsertForAllChunks.itemsToInsertForChunks.push(itemsToInsert);
 
-    processedInvoice.parsedInvoiceChunks.push(invoiceResponse);
+    processedInvoice.parsedInvoiceChunks.push(invoiceResponse.invoice);
   }
 
   logger.logConfig({

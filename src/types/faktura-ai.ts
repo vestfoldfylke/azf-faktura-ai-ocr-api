@@ -1,3 +1,4 @@
+import type { AIVendor } from "./ai/ai-agent.js";
 import type { Invoice, WorkItemList } from "./ai/zod-ocr.js";
 import type { WorkMongoItem } from "./zod-mongo.js";
 
@@ -13,6 +14,12 @@ export type ItemsToInsert = {
   workMongoItemList: WorkMongoItem[];
   failedWorkItemIds: number[];
   chunkIndex: number;
+};
+
+export type OcrProcessedResponse = {
+  invoice: Invoice | null;
+  vendorModel: string;
+  vendorName: AIVendor;
 };
 
 export type ProblematicCsvItem = Omit<CsvItem, "fromDateTime" | "toDateTime"> & {

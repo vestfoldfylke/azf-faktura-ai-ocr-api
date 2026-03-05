@@ -46,6 +46,7 @@
     "@vestfoldfylke/loglady": "^1.5.0",
     "@vestfoldfylke/vestfold-metrics": "^1.0.0",
     "mongodb": "^7.1.0",
+    "openai": "^6.25.0",
     "pdf-lib": "^1.17.1",
     "source-map-support": "^0.5.21",
     "zod": "^4.3.6"

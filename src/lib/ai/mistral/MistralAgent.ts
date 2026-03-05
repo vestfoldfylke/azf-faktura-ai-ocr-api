@@ -5,27 +5,30 @@ import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { ZodSafeParseResult } from "zod";
 
 import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../../../constants.js";
-
 import type { AIVendorConfigMap, IAIAgent } from "../../../types/ai/ai-agent.js";
 import type { OcrRequestOptions, ZodObjectAnyShape } from "../../../types/ai/ocr.js";
 import { type Invoice, InvoiceSchema } from "../../../types/ai/zod-ocr.js";
+import type { OcrProcessedResponse } from "../../../types/faktura-ai.js";
 
 export class MistralAgent implements IAIAgent {
   private readonly _mistralClient: Mistral;
+  private readonly _mistralConfig: AIVendorConfigMap["mistral"];
   readonly _agentName: string = "Mistral";
 
   public constructor(config: AIVendorConfigMap["mistral"]) {
     this._mistralClient = new Mistral({ apiKey: config.apiKey });
+    this._mistralConfig = config;
   }
 
   public async ocrToStructuredJson(
     base64Data: string,
     options: OcrRequestOptions<ZodObjectAnyShape, ZodObjectAnyShape>
-  ): Promise<ZodSafeParseResult<Invoice> | null> {
+  ): Promise<OcrProcessedResponse | null> {
     try {
-      logger.info("[{VendorName}] - Starting OCR processing", this._agentName);
+      logger.info("[{VendorName} - {Model}] - Starting OCR processing", this._agentName, this._mistralConfig.model);
+
       const result: OCRResponse = await this._mistralClient.ocr.process({
-        model: "mistral-ocr-latest",
+        model: this._mistralConfig.model,
         document: {
           documentUrl: `data:application/pdf;base64,${base64Data}`,
           type: "document_url"
@@ -43,7 +46,7 @@ export class MistralAgent implements IAIAgent {
       });
 
       if (!result) {
-        logger.warn("[{VendorName}] - OCR processing failed for base64", this._agentName);
+        logger.warn("[{VendorName} - {Model}] - OCR processing failed for base64", this._agentName, this._mistralConfig.model);
         count(`${MetricsPrefix}_${this._agentName}_OcrChunk`, `Number of OCR chunks processed with ${this._agentName}`, [
           MetricsResultLabelName,
           MetricsResultFailedLabelValue
@@ -55,7 +58,7 @@ export class MistralAgent implements IAIAgent {
         MetricsResultLabelName,
         MetricsResultSuccessLabelValue
       ]);
-      logger.info("[{VendorName}] - OCR completed", this._agentName);
+      logger.info("[{VendorName} - {Model}] - OCR completed", this._agentName, this._mistralConfig.model);
 
       if (!result.documentAnnotation) {
         return null;
@@ -69,8 +72,9 @@ export class MistralAgent implements IAIAgent {
         ]);
         logger.errorException(
           parsedInvoice.error,
-          "[{VendorName}] - Failed to parse documentAnnotation into a type of Invoice. Skipping'",
-          this._agentName
+          "[{VendorName} - {Model}] - Failed to parse documentAnnotation into a type of Invoice. Skipping'",
+          this._agentName,
+          this._mistralConfig.model
         );
         return null;
       }
@@ -79,11 +83,19 @@ export class MistralAgent implements IAIAgent {
         MetricsResultLabelName,
         MetricsResultSuccessLabelValue
       ]);
-      logger.info("[{VendorName}] - Successfully parsed documentAnnotation into a type of Invoice", this._agentName);
+      logger.info(
+        "[{VendorName} - {Model}] - Successfully parsed documentAnnotation into a type of Invoice",
+        this._agentName,
+        this._mistralConfig.model
+      );
 
-      return parsedInvoice;
+      return {
+        invoice: parsedInvoice.data,
+        vendorModel: this._mistralConfig.model,
+        vendorName: "mistral"
+      };
     } catch (error) {
-      logger.errorException(error, "[{VendorName}] - Error during OCR processing", this._agentName);
+      logger.errorException(error, "[{VendorName} - {Model}] - Error during OCR processing", this._agentName, this._mistralConfig.model);
       return null;
     }
   }

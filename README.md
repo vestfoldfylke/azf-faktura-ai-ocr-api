@@ -67,7 +67,9 @@ Create a `local.settings.json` file in the project root with the following conte
     "AZURE_CLIENT_SECRET": "client-secret-here",
     "AZURE_TENANT_ID": "tenant-id-here",
     "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
+    "MISTRAL_MODEL_NAME": "mistral-ocr-latest", // set to a model that supports OCR
     "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
+    "OPENAI_MODEL_NAME:": "gpt-4o", // set to a model that supports OCR
     "OCR_MAX_PAGES_PER_CHUNK": "2",
     "OCR_PROCESS_ALREADY_PROCESSED_FILES": "false",
     "MONGODB_CONNECTION_STRING": "mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=azf-faktura-ai-ocr-api-local",

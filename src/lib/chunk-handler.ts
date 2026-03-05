@@ -1,8 +1,8 @@
 import { logger } from "@vestfoldfylke/loglady";
 import type { ZodSafeParseResult } from "zod";
 import type { IAIAgent } from "../types/ai/ai-agent.js";
-import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/ai/zod-ocr.js";
-import type { ItemsToInsert } from "../types/faktura-ai.js";
+import { ImageSchema, InvoiceSchema, type WorkItem } from "../types/ai/zod-ocr.js";
+import type { ItemsToInsert, OcrProcessedResponse } from "../types/faktura-ai.js";
 import { WorkItemMongoSchema, type WorkMongoItem } from "../types/zod-mongo.js";
 
 import { AIAgent } from "./ai/AIAgent.js";
@@ -108,11 +108,11 @@ const getValidWorkItem = (workItem: WorkItem): ValidWorkItem => {
   };
 };
 
-export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null> => {
+export const handleOcrChunk = async (base64Data: string): Promise<OcrProcessedResponse | null> => {
   const startTime: number = Date.now();
   logger.info("OCR processing pdf chunk");
 
-  const response: ZodSafeParseResult<Invoice> | null = await aiAgent.ocrToStructuredJson(base64Data, {
+  const response: OcrProcessedResponse | null = await aiAgent.ocrToStructuredJson(base64Data, {
     bboxAnnotationFormat: ImageSchema,
     documentAnnotationFormat: InvoiceSchema,
     includeImageBase64: false
@@ -126,25 +126,30 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
     return null;
   }
 
-  return response.data;
+  return response;
 };
 
-export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, pdfChunk: number, maxPagesPerChunk: number): ItemsToInsert => {
-  if (invoice.length === 0) {
+export const getItemsToInsert = (
+  invoiceResponse: OcrProcessedResponse,
+  invoiceNumber: string,
+  pdfChunk: number,
+  maxPagesPerChunk: number
+): ItemsToInsert => {
+  if (invoiceResponse.invoice.workLists.length === 0) {
     logger.info("No work items found in document annotation.");
     return {
-      workItemList: invoice,
+      workItemList: invoiceResponse.invoice.workLists,
       workMongoItemList: [],
       failedWorkItemIds: [],
       chunkIndex: pdfChunk
     };
   }
 
-  logger.info("Preparing {WorkItemsLength} work items for database insertion from documentAnnotation.", invoice.length);
+  logger.info("Preparing {WorkItemsLength} work items for database insertion from documentAnnotation.", invoiceResponse.invoice.workLists.length);
   const workMongoItemList: WorkMongoItem[] = [];
   const workItemIdFailedList: number[] = [];
 
-  for (const workItem of invoice) {
+  for (const workItem of invoiceResponse.invoice.workLists) {
     const validWorkItem: ValidWorkItem = getValidWorkItem(workItem);
     if (!validWorkItem.valid) {
       logger.error("WorkItem with id {WorkItemId} is {InvalidReason}. Skipping WorkItem: {@WorkItem}", workItem.id, validWorkItem.reason, workItem);
@@ -152,8 +157,10 @@ export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, p
       continue;
     }
 
-    const dbWorkItem: ZodSafeParseResult<WorkMongoItem> = WorkItemMongoSchema.safeParse({
+    const workMongoItem: WorkMongoItem = {
       activity: workItem.activity,
+      aiVendorModel: invoiceResponse.vendorModel,
+      aiVendorName: invoiceResponse.vendorName,
       department: workItem.department,
       employee: workItem.employee,
       extras: workItem.extras,
@@ -171,7 +178,9 @@ export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, p
       toTime: workItem.toTime,
       toDateTime: getDateTime(workItem.toDate, workItem.toTime),
       totalHour: getTotalHours(workItem)
-    });
+    };
+
+    const dbWorkItem: ZodSafeParseResult<WorkMongoItem> = WorkItemMongoSchema.safeParse(workMongoItem);
 
     if (!dbWorkItem.success) {
       logger.errorException(
@@ -189,7 +198,7 @@ export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, p
 
   logger.info("Prepared {WorkItemsLength} work items for database insertion.", workMongoItemList.length);
   return {
-    workItemList: invoice,
+    workItemList: invoiceResponse.invoice.workLists,
     workMongoItemList,
     failedWorkItemIds: workItemIdFailedList,
     chunkIndex: pdfChunk

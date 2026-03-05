@@ -3,25 +3,29 @@ import type { SharePointConfig } from "./types/sharepoint.js";
 
 const getMistralConfig = (): AIVendorConfigMap["mistral"] | undefined => {
   const apiKey: string = process.env.MISTRAL_API_KEY;
+  const model: string = process.env.MISTRAL_MODEL_NAME || "mistral-ocr-latest";
 
   if (!apiKey) {
     return undefined;
   }
 
   return {
-    apiKey
+    apiKey,
+    model
   };
 };
 
 const getOpenAIConfig = (): AIVendorConfigMap["openai"] | undefined => {
   const apiKey: string = process.env.OPENAI_API_KEY;
+  const model: string = process.env.OPENAI_MODEL_NAME || "gpt-4o";
 
   if (!apiKey) {
     return undefined;
   }
 
   return {
-    apiKey
+    apiKey,
+    model
   };
 };
 
