@@ -26,7 +26,7 @@ export class OpenAIAgent implements IAIAgent {
     options: OcrRequestOptions<ZodObjectAnyShape, ZodObjectAnyShape>
   ): Promise<OcrProcessedResponse | null> {
     try {
-      logger.info("[{VendorName} - {Model}] - Starting OCR processing on model {Model}", this._agentName, this._openAiConfig.model);
+      logger.info("[{VendorName} - {Model}] - Starting OCR processing", this._agentName, this._openAiConfig.model);
 
       if (!options?.documentAnnotationFormat) {
         logger.warn(
@@ -44,7 +44,10 @@ export class OpenAIAgent implements IAIAgent {
           {
             role: "user",
             content: [
-              { type: "text", text: "Extract structured data from this PDF document." },
+              {
+                type: "text",
+                text: "Ekstraher strukturerte data fra dette PDF-dokumentet. Et WorkItemSchema skal KUN brukes når oppføringen er for en arbeidsoppføring fra en timeliste utført av en person"
+              },
               { type: "file", file: { file_data: fileDataUrl, filename: "whatever.pdf" } }
             ]
           }
