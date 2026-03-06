@@ -39,7 +39,7 @@ const WorkItemSchema = z
       .describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet. Starter ALLTID på 1 og øker med 1 for hver side i PDF'en"),
     id: z.number().describe("Unikt løpenummer som starter på 1 og øker med 1 for hver oppføring")
   })
-  .describe("Denne skal KUN opprettes når alle påkrevde felter er tilstede i OCR-resultatet.");
+  .describe("Denne skal KUN brukes når oppføringen er for en arbeidsoppføring fra en timeliste utført av en person!");
 
 const WorkItemListSchema = z.array(WorkItemSchema);
 

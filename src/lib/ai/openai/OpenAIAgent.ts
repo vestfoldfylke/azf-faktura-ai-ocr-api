@@ -44,7 +44,10 @@ export class OpenAIAgent implements IAIAgent {
           {
             role: "user",
             content: [
-              { type: "text", text: "Extract structured data from this PDF document." },
+              {
+                type: "text",
+                text: "Ekstraher strukturerte data fra dette PDF-dokumentet. Et WorkItemSchema skal KUN brukes når oppføringen er for en arbeidsoppføring fra en timeliste utført av en person"
+              },
               { type: "file", file: { file_data: fileDataUrl, filename: "whatever.pdf" } }
             ]
           }
