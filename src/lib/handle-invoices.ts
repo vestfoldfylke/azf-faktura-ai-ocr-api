@@ -65,7 +65,7 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
         invoiceNumber,
         SharePointErrorReasonAlreadyProcessed
       );
-      logger.info("Item with Id {ItemId} already processed. Marked as {Status} in SharePoint", listItem.id, SharePointStatusSuccess);
+      logger.info("Item with Id {ItemId} already processed. Marked as '{Status}' in SharePoint", listItem.id, SharePointStatusSuccess);
 
       continue;
     }
@@ -80,7 +80,7 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
         processedInvoice.insertedWorkItemCount,
         processedInvoice.invoiceNumber
       );
-      logger.info("Item with Id {ItemId} processed successfully. Marked as {Status} in SharePoint", listItem.id, SharePointStatusSuccess);
+      logger.info("Item with Id {ItemId} processed successfully. Marked as '{Status}' in SharePoint", listItem.id, SharePointStatusSuccess);
 
       continue;
     }
@@ -101,13 +101,13 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
 
     if (willRetry) {
       logger.warn(
-        "Item with Id {ItemId} failed to process. Marked as {Status} in SharePoint. Will retry processing this item next time",
+        "Item with Id {ItemId} failed to process. Marked as '{Status}' in SharePoint. Will retry processing this item next time",
         listItem.id,
         SharePointStatusFailedWillRetry
       );
     } else {
       logger.error(
-        "Item with Id {ItemId} failed to process. Marked as {Status} in SharePoint. Reached maximum retry attempts ({MaxAttempts}). Will not retry this item anymore",
+        "Item with Id {ItemId} failed to process. Marked as '{Status}' in SharePoint. Reached maximum retry attempts ({MaxAttempts}). Will not retry this item anymore",
         listItem.id,
         SharePointStatusFailedNoRetry,
         sharePointConfig.handledErrorThreshold
