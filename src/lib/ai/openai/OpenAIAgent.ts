@@ -26,7 +26,7 @@ export class OpenAIAgent implements IAIAgent {
     options: OcrRequestOptions<ZodObjectAnyShape, ZodObjectAnyShape>
   ): Promise<OcrProcessedResponse | null> {
     try {
-      logger.info("[{VendorName} - {Model}] - Starting OCR processing on model {Model}", this._agentName, this._openAiConfig.model);
+      logger.info("[{VendorName} - {Model}] - Starting OCR processing", this._agentName, this._openAiConfig.model);
 
       if (!options?.documentAnnotationFormat) {
         logger.warn(
