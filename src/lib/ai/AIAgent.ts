@@ -1,3 +1,5 @@
+import { logger } from "@vestfoldfylke/loglady";
+
 import { getAIAgentConfig } from "../../config.js";
 
 import type { AIVendor, AIVendorConfigMap, IAIAgent } from "../../types/ai/ai-agent.js";
@@ -17,8 +19,10 @@ export class AIAgent implements IAIAgent {
 
     if (aiAgentConfig.mistral) {
       this.aiAgent = new MistralAgent(aiAgentConfig.mistral);
+      logger.info("Initialized agent {AgentName} with model {Model}", this._agentName, aiAgentConfig.mistral.model);
     } else if (aiAgentConfig.openai) {
       this.aiAgent = new OpenAIAgent(aiAgentConfig.openai);
+      logger.info("Initialized agent {AgentName} with model {Model}", this._agentName, aiAgentConfig.openai.model);
     } else {
       throw new Error("No valid AI agent configuration found. Please check environment variables.");
     }
