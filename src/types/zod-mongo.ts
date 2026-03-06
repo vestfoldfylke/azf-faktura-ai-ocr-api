@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const WorkItemMongoSchema = z.object({
   activity: z.string().nullish(),
+  aiVendorModel: z.string(),
+  aiVendorName: z.string(),
   department: z.string().nullish(),
   employee: z.string(),
   extras: z.string().nullish(),

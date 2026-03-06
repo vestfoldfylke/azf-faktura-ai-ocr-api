@@ -1,18 +1,14 @@
-import type { OCRResponse } from "@mistralai/mistralai/models/components";
 import { logger } from "@vestfoldfylke/loglady";
-import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { ZodSafeParseResult } from "zod";
-
-import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../constants.js";
-
-import type { ItemsToInsert } from "../types/faktura-ai.js";
+import type { IAIAgent } from "../types/ai/ai-agent.js";
+import { ImageSchema, InvoiceSchema, type WorkItem } from "../types/ai/zod-ocr.js";
+import type { ItemsToInsert, OcrProcessedResponse } from "../types/faktura-ai.js";
 import { WorkItemMongoSchema, type WorkMongoItem } from "../types/zod-mongo.js";
-import { ImageSchema, type Invoice, InvoiceSchema, type WorkItem, type WorkItemList } from "../types/zod-ocr.js";
 
-import { base64Ocr } from "./mistral-ocr.js";
+import { AIAgent } from "./ai/AIAgent.js";
 import { insertWorkItemsToDb } from "./mongodb-fns.js";
 
-const MetricsFilePrefix = "ChunkHandler";
+const aiAgent: IAIAgent = new AIAgent();
 
 type ValidWorkItem = {
   reason?: string;
@@ -112,11 +108,11 @@ const getValidWorkItem = (workItem: WorkItem): ValidWorkItem => {
   };
 };
 
-export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null> => {
+export const handleOcrChunk = async (base64Data: string): Promise<OcrProcessedResponse | null> => {
   const startTime: number = Date.now();
   logger.info("OCR processing pdf chunk");
 
-  const response: OCRResponse | null = await base64Ocr(base64Data, {
+  const response: OcrProcessedResponse | null = await aiAgent.ocrToStructuredJson(base64Data, {
     bboxAnnotationFormat: ImageSchema,
     documentAnnotationFormat: InvoiceSchema,
     includeImageBase64: false
@@ -126,54 +122,34 @@ export const handleOcrChunk = async (base64Data: string): Promise<Invoice | null
   const durationSeconds: number = (endTime - startTime) / 1000;
 
   if (!response) {
-    logger.warn("OCR processing failed for pdf chunk in {Duration} s. Skipping", durationSeconds);
-    count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrChunk`, "Number of OCR chunks processed", [
-      MetricsResultLabelName,
-      MetricsResultFailedLabelValue
-    ]);
+    logger.warn("OCR processing failed for PDF chunk in {Duration} s. Skipping", durationSeconds);
     return null;
   }
 
-  count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrChunk`, "Number of OCR chunks processed", [MetricsResultLabelName, MetricsResultSuccessLabelValue]);
-  logger.info("OCR completed in {Duration} s.", durationSeconds);
-
-  if (!response.documentAnnotation) {
-    return null;
-  }
-
-  const parsedInvoice: ZodSafeParseResult<Invoice> = InvoiceSchema.safeParse(JSON.parse(response.documentAnnotation));
-  if (!parsedInvoice.success) {
-    count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrDAChunk`, "Number of OCR document annotation chunks processed", [
-      MetricsResultLabelName,
-      MetricsResultFailedLabelValue
-    ]);
-    logger.errorException(parsedInvoice.error, "Failed to parse documentAnnotation into a type of Invoice. Skipping'");
-    return null;
-  }
-
-  count(`${MetricsPrefix}_${MetricsFilePrefix}_OcrDAChunk`, "Number of OCR document annotation chunks processed", [
-    MetricsResultLabelName,
-    MetricsResultSuccessLabelValue
-  ]);
-  return parsedInvoice.data;
+  return response;
 };
 
-export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, pdfChunk: number, maxPagesPerChunk: number): ItemsToInsert => {
-  if (invoice.length === 0) {
+export const getItemsToInsert = (
+  invoiceResponse: OcrProcessedResponse,
+  invoiceNumber: string,
+  pdfChunk: number,
+  maxPagesPerChunk: number
+): ItemsToInsert => {
+  if (invoiceResponse.invoice.workLists.length === 0) {
     logger.info("No work items found in document annotation.");
     return {
-      workItemList: invoice,
+      workItemList: invoiceResponse.invoice.workLists,
       workMongoItemList: [],
       failedWorkItemIds: [],
       chunkIndex: pdfChunk
     };
   }
 
-  logger.info("Preparing {WorkItemsLength} work items for database insertion from documentAnnotation.", invoice.length);
+  logger.info("Preparing {WorkItemsLength} work items for database insertion from documentAnnotation.", invoiceResponse.invoice.workLists.length);
   const workMongoItemList: WorkMongoItem[] = [];
   const workItemIdFailedList: number[] = [];
 
-  for (const workItem of invoice) {
+  for (const workItem of invoiceResponse.invoice.workLists) {
     const validWorkItem: ValidWorkItem = getValidWorkItem(workItem);
     if (!validWorkItem.valid) {
       logger.error("WorkItem with id {WorkItemId} is {InvalidReason}. Skipping WorkItem: {@WorkItem}", workItem.id, validWorkItem.reason, workItem);
@@ -181,8 +157,10 @@ export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, p
       continue;
     }
 
-    const dbWorkItem: ZodSafeParseResult<WorkMongoItem> = WorkItemMongoSchema.safeParse({
+    const workMongoItem: WorkMongoItem = {
       activity: workItem.activity,
+      aiVendorModel: invoiceResponse.vendorModel,
+      aiVendorName: invoiceResponse.vendorName,
       department: workItem.department,
       employee: workItem.employee,
       extras: workItem.extras,
@@ -200,7 +178,9 @@ export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, p
       toTime: workItem.toTime,
       toDateTime: getDateTime(workItem.toDate, workItem.toTime),
       totalHour: getTotalHours(workItem)
-    });
+    };
+
+    const dbWorkItem: ZodSafeParseResult<WorkMongoItem> = WorkItemMongoSchema.safeParse(workMongoItem);
 
     if (!dbWorkItem.success) {
       logger.errorException(
@@ -218,7 +198,7 @@ export const getItemsToInsert = (invoice: WorkItemList, invoiceNumber: string, p
 
   logger.info("Prepared {WorkItemsLength} work items for database insertion.", workMongoItemList.length);
   return {
-    workItemList: invoice,
+    workItemList: invoiceResponse.invoice.workLists,
     workMongoItemList,
     failedWorkItemIds: workItemIdFailedList,
     chunkIndex: pdfChunk
