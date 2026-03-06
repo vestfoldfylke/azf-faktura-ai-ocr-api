@@ -13,6 +13,7 @@ export type ItemsToInsert = {
   workItemList: WorkItemList;
   workMongoItemList: WorkMongoItem[];
   failedWorkItemIds: number[];
+  skippedWorkItemIds: number[];
   chunkIndex: number;
 };
 

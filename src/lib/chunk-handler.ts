@@ -142,6 +142,7 @@ export const getItemsToInsert = (
       workItemList: invoiceResponse.invoice.workLists,
       workMongoItemList: [],
       failedWorkItemIds: [],
+      skippedWorkItemIds: [],
       chunkIndex: pdfChunk
     };
   }
@@ -149,11 +150,30 @@ export const getItemsToInsert = (
   logger.info("Preparing {WorkItemsLength} work items for database insertion from documentAnnotation.", invoiceResponse.invoice.workLists.length);
   const workMongoItemList: WorkMongoItem[] = [];
   const workItemIdFailedList: number[] = [];
+  const workItemIdSkippedList: number[] = [];
 
   for (const workItem of invoiceResponse.invoice.workLists) {
     const validWorkItem: ValidWorkItem = getValidWorkItem(workItem);
     if (!validWorkItem.valid) {
-      logger.error("WorkItem with id {WorkItemId} is {InvalidReason}. Skipping WorkItem: {@WorkItem}", workItem.id, validWorkItem.reason, workItem);
+      if (pdfChunk >= 3) {
+        logger.warn(
+          "WorkItem with id {WorkItemId} is {InvalidReason}. Skipping WorkItem. Since this is happening on ChunkIndex >= 3 ({ChunkIndex}), we assume this isn't a worklist 🤞: {@WorkItem}",
+          workItem.id,
+          validWorkItem.reason,
+          pdfChunk,
+          workItem
+        );
+        workItemIdSkippedList.push(workItem.id);
+        continue;
+      }
+
+      logger.error(
+        "WorkItem with id {WorkItemId} is {InvalidReason}. Skipping WorkItem. Since this is happening on ChunkIndex < 3 ({ChunkIndex}), we assume this is a worklist 🖕: {@WorkItem}",
+        workItem.id,
+        validWorkItem.reason,
+        pdfChunk,
+        workItem
+      );
       workItemIdFailedList.push(workItem.id);
       continue;
     }
@@ -202,6 +222,7 @@ export const getItemsToInsert = (
     workItemList: invoiceResponse.invoice.workLists,
     workMongoItemList,
     failedWorkItemIds: workItemIdFailedList,
+    skippedWorkItemIds: workItemIdSkippedList,
     chunkIndex: pdfChunk
   };
 };
@@ -215,6 +236,21 @@ export const insertWorkItems = async (itemsToInsert: ItemsToInsert): Promise<str
 
     if (itemsToInsert.failedWorkItemIds.includes(workItem.id)) {
       logger.error(
+        "Chunk: {ChunkIndex} :: {WorkItemId} - From: {FromDate} {FromTime} <-> {ToDate} {ToTime} ({Hours}) ({Employee})",
+        itemsToInsert.chunkIndex,
+        workItem.id,
+        workItem.fromDate,
+        workItem.fromTime,
+        workItem.toDate,
+        workItem.toTime,
+        workItem.total || workItem.machineHours || "0",
+        workItem.employee
+      );
+      continue;
+    }
+
+    if (itemsToInsert.skippedWorkItemIds.includes(workItem.id)) {
+      logger.warn(
         "Chunk: {ChunkIndex} :: {WorkItemId} - From: {FromDate} {FromTime} <-> {ToDate} {ToTime} ({Hours}) ({Employee})",
         itemsToInsert.chunkIndex,
         workItem.id,
