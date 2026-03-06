@@ -1,30 +1,5 @@
 import { z } from "zod";
 
-// Document Annotation response formats
-const ProductSchema = z.object({
-  productNumber: z.string().nullish().describe("Produktnummer eller produktkode, SKAL være en tom streng hvis ikke tilgjengelig"),
-  description: z.string().nullish().describe("Beskrivelse av produktet eller tjenesten, SKAL være en tom streng hvis ikke tilgjengelig"),
-  quantity: z
-    .string()
-    .nullish()
-    .describe(
-      "Antall enheter av produktet eller tjenesten som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"
-    ),
-  unit: z.string().nullish().describe("Enhet for mengde, f.eks. 'stk', 'kg', SKAL være en tom streng hvis ikke tilgjengelig"),
-  unitPrice: z
-    .string()
-    .nullish()
-    .describe(
-      "Pris per enhet av produktet eller tjenesten som desimaltall, bruk punktum som desimalskilletegn. Kan være skrevet som et helt tall eller med mellomrom mellom hver tusen. SKAL være en tom streng hvis ikke tilgjengelig"
-    ),
-  totalPrice: z
-    .string()
-    .nullish()
-    .describe(
-      "Totalpris for linjeelementet (quantity * unitPrice) som desimaltall, bruk punktum som desimalskilletegn. Kan være skrevet som et helt tall eller med mellomrom mellom hver tusen. SKAL være en tom streng hvis ikke tilgjengelig"
-    )
-});
-
 const WorkItemSchema = z
   .object({
     department: z.string().nullish().describe("Avdeling, enhet eller team som utførte arbeidet"),
@@ -47,7 +22,6 @@ const WorkItemSchema = z
       .describe(
         "Sluttdato for arbeidsperioden i format DD.MM.YYYY, basert på dato-feltet når arbeidet startet. Hvis sluttiden går over midnatt (00:00), settes denne til neste dag."
       ),
-    payType: z.string().nullish().describe("Lønnsart eller lønnskode knyttet til arbeidet"),
     extras: z.string().nullish().describe("Tilleggskoder og beskrivelse av tillegg, SKAL være en tom streng hvis ikke tilgjengelig"),
     total: z
       .string()
@@ -60,11 +34,6 @@ const WorkItemSchema = z
       .describe(
         "Maskintimer med utstyrskoder brukt, som desimaltall, bruk punktum som desimalskilletegn. Vil aldri være urimelig høyt. Alltid lavere enn 100. SKAL være en tom streng hvis ikke tilgjengelig"
       ),
-    // NOTE: Disabled comments since on some invoices where the column height in some rows are different, makes the OCR read fewer lines...
-    /*    comments: z
-      .string()
-      .nullish()
-      .describe("Eventuelle kommentarer eller notater knyttet til arbeidsoppføringen, SKAL være en tom streng hvis ikke tilgjengelig"),*/
     pageNumber: z
       .number()
       .describe("Sidenummer i PDF-dokumentet hvor arbeidsoppføringen ble funnet. Starter ALLTID på 1 og øker med 1 for hver side i PDF'en"),
@@ -80,12 +49,6 @@ export const InvoiceSchema = z.object({
     .array(WorkItemSchema)
     .describe("Liste over timelister knyttet til fakturaen. Denne skal være et tomt array hvis ingen timelister er funnet."),
 
-  // Line items/products
-  lineItems: z
-    .array(ProductSchema)
-    .nullish()
-    .describe("Liste over alle produkter eller tjenester på fakturaen, kan være null hvis ikke tilgjengelig"),
-
   // Invoice header details
   invoice: z
     .object({
@@ -93,63 +56,6 @@ export const InvoiceSchema = z.object({
       date: z.string().nullish().describe("Fakturadato i format DD.MM.YYYY"),
       dueDate: z.string().nullish().describe("Forfallsdato i format DD.MM.YYYY"),
       kid: z.string().nullish().describe("KID-nummer, vanligvis 10 siffer. SKAL være en tom streng hvis ikke tilgjengelig")
-    })
-    .nullish()
-    .describe("Denne skal KUN opprettes når minimum ett felt er tilstede i OCR-resultatet."),
-
-  // Customer / Recipient details
-  recipient: z
-    .object({
-      name: z.string().nullish().describe("Mottakers organisasjonsnavn eller personnavn"),
-      streetAddress: z.string().nullish().describe("Gateadresse eller postboksadresse til mottakeren"),
-      postalCode: z.string().nullish().describe("Postnummer til mottakeren"),
-      city: z.string().nullish().describe("Poststed eller by til mottakeren")
-    })
-    .nullish()
-    .describe("Denne skal KUN opprettes når minimum ett felt er tilstede i OCR-resultatet."),
-
-  // Reference details
-  reference: z
-    .object({
-      ourReference: z.string().nullish().describe("Vår referanse, kontaktperson hos avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      theirReference: z.string().nullish().describe("Deres referanse eller kontraktsnummer, SKAL være en tom streng hvis ikke tilgjengelig")
-    })
-    .nullish()
-    .describe("Denne skal KUN opprettes når minimum ett felt er tilstede i OCR-resultatet."),
-
-  // Totals and amounts
-  totals: z
-    .object({
-      excludingMva: z
-        .string()
-        .nullish()
-        .describe("Totalbeløp ekskl. MVA som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
-      mvaAmount: z
-        .string()
-        .nullish()
-        .describe("Total MVA-beløp som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig"),
-      includingMva: z
-        .string()
-        .nullish()
-        .describe("Totalbeløp inkl. MVA som desimaltall, bruk punktum som desimalskilletegn. SKAL være en tom streng hvis ikke tilgjengelig")
-    })
-    .nullish()
-    .describe("Denne skal KUN opprettes når minimum ett felt er tilstede i OCR-resultatet."),
-
-  // Sender / Company details
-  sender: z
-    .object({
-      name: z.string().nullish().describe("Avsenders organisasjonsnavn eller personnavn, SKAL være en tom streng hvis ikke tilgjengelig"),
-      streetAddress: z.string().nullish().describe("Gateadresse eller postboksadresse til avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      orgNumber: z.string().nullish().describe("Organisasjonsnummer til avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      businessRegistration: z.string().nullish().describe("Foretaksregister informasjon, SKAL være en tom streng hvis ikke tilgjengelig"),
-      euRegistration: z.string().nullish().describe("EU registreringsnummer for MVA, SKAL være en tom streng hvis ikke tilgjengelig"),
-      mvaRegistration: z.string().nullish().describe("MVA registreringsnummer, SKAL være en tom streng hvis ikke tilgjengelig"),
-      postalCode: z.string().nullish().describe("Postnummer til avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      city: z.string().nullish().describe("Poststed eller by til avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      phoneNumber: z.string().nullish().describe("Telefonnummer til avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      email: z.string().nullish().describe("E-postadresse til avsender, SKAL være en tom streng hvis ikke tilgjengelig"),
-      website: z.string().nullish().describe("Nettsted URL til avsender, SKAL være en tom streng hvis ikke tilgjengelig")
     })
     .nullish()
     .describe("Denne skal KUN opprettes når minimum ett felt er tilstede i OCR-resultatet.")
