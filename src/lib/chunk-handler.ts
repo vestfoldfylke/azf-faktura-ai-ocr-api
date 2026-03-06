@@ -92,7 +92,7 @@ const isValidTime = new RegExp(/^[0-2][0-9]:[0-5][0-9]$/);
 const getValidWorkItem = (workItem: WorkItem): ValidWorkItem => {
   if (
     !workItem.employee ||
-    !Number.isNaN(Number.parseInt(workItem.employee)) || // 🤦‍♂️ to remove items where AI has clearly misunderstood and extracted a number as employee name
+    !Number.isNaN(Number.parseInt(workItem.employee, 10)) || // 🤦‍♂️ to remove items where AI has clearly misunderstood and extracted a number as employee name
     !isValidTime.test(workItem.fromTime) ||
     !isValidTime.test(workItem.toTime) ||
     !isValidDate.test(workItem.fromDate) ||
