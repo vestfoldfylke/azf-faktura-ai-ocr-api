@@ -10,7 +10,7 @@ export async function timerTrigger(_myTimer: Timer, _context: InvocationContext)
   await handleInvoices();
 }
 
-app.timer("timerTrigger", {
+app.timer("timerTriggerInvoiceRead", {
   schedule: "%InvoiceReadSchedule%",
   handler: async (timer: Timer, context: InvocationContext): Promise<void> => await errorTimerHandling(timer, context, timerTrigger, "timerTrigger")
 });
