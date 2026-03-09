@@ -14,7 +14,7 @@ import type { OcrProcessedResponse } from "../../../types/faktura-ai.js";
 export class OpenAIAgent implements IAIAgent {
   private readonly _openAiClient: OpenAI;
   private readonly _openAiConfig: AIVendorConfigMap["openai"];
-  readonly _agentName: string = "OpenAI";
+  readonly agentName: string = "OpenAI";
 
   public constructor(config: AIVendorConfigMap["openai"]) {
     this._openAiClient = new OpenAI({ apiKey: config.apiKey });
@@ -26,12 +26,12 @@ export class OpenAIAgent implements IAIAgent {
     options: OcrRequestOptions<ZodObjectAnyShape, ZodObjectAnyShape>
   ): Promise<OcrProcessedResponse | null> {
     try {
-      logger.info("[{VendorName} - {Model}] - Starting OCR processing", this._agentName, this._openAiConfig.model);
+      logger.info("[{VendorName} - {Model}] - Starting OCR processing", this.agentName, this._openAiConfig.model);
 
       if (!options?.documentAnnotationFormat) {
         logger.warn(
           "[{VendorName} - {Model}] - No document annotation format provided, skipping OCR processing",
-          this._agentName,
+          this.agentName,
           this._openAiConfig.model
         );
         return null;
@@ -56,8 +56,8 @@ export class OpenAIAgent implements IAIAgent {
       });
 
       if (result.choices.length === 0) {
-        logger.warn("[{VendorName} - {Model}] - OCR processing returned 0 messages", this._agentName, this._openAiConfig.model);
-        count(`${MetricsPrefix}_${this._agentName}_OcrChunk`, `Number of OCR chunks processed with ${this._agentName}`, [
+        logger.warn("[{VendorName} - {Model}] - OCR processing returned 0 messages", this.agentName, this._openAiConfig.model);
+        count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
           MetricsResultLabelName,
           MetricsResultFailedLabelValue
         ]);
@@ -67,10 +67,10 @@ export class OpenAIAgent implements IAIAgent {
       if (!result.choices[0].message.content) {
         logger.warn(
           "[{VendorName} - {Model}] - OCR processing returned a message but its content was empty",
-          this._agentName,
+          this.agentName,
           this._openAiConfig.model
         );
-        count(`${MetricsPrefix}_${this._agentName}_OcrChunk`, `Number of OCR chunks processed with ${this._agentName}`, [
+        count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
           MetricsResultLabelName,
           MetricsResultFailedLabelValue
         ]);
@@ -79,37 +79,37 @@ export class OpenAIAgent implements IAIAgent {
 
       logger.info(
         "[{VendorName} - {Model}] - OCR completed. Got {ChoiceCount} message",
-        this._agentName,
+        this.agentName,
         this._openAiConfig.model,
         result.choices.length
       );
-      count(`${MetricsPrefix}_${this._agentName}_OcrChunk`, `Number of OCR chunks processed with ${this._agentName}`, [
+      count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
         MetricsResultLabelName,
         MetricsResultSuccessLabelValue
       ]);
 
       const parsedInvoice: ZodSafeParseResult<Invoice> = InvoiceSchema.safeParse(JSON.parse(result.choices[0].message.content));
       if (!parsedInvoice.success) {
-        count(`${MetricsPrefix}_${this._agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this._agentName}`, [
+        count(`${MetricsPrefix}_${this.agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this.agentName}`, [
           MetricsResultLabelName,
           MetricsResultFailedLabelValue
         ]);
         logger.errorException(
           parsedInvoice.error,
           "[{VendorName} - {Model}] - Failed to parse documentAnnotation into a type of Invoice. Skipping'",
-          this._agentName,
+          this.agentName,
           this._openAiConfig.model
         );
         return null;
       }
 
-      count(`${MetricsPrefix}_${this._agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this._agentName}`, [
+      count(`${MetricsPrefix}_${this.agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this.agentName}`, [
         MetricsResultLabelName,
         MetricsResultSuccessLabelValue
       ]);
       logger.info(
         "[{VendorName} - {Model}] - Successfully parsed documentAnnotation into a type of Invoice",
-        this._agentName,
+        this.agentName,
         this._openAiConfig.model
       );
 
@@ -119,7 +119,7 @@ export class OpenAIAgent implements IAIAgent {
         vendorName: "openai"
       };
     } catch (error) {
-      logger.errorException(error, "[{VendorName} - {Model}] - Error during OCR processing", this._agentName, this._openAiConfig.model);
+      logger.errorException(error, "[{VendorName} - {Model}] - Error during OCR processing", this.agentName, this._openAiConfig.model);
       return null;
     }
   }

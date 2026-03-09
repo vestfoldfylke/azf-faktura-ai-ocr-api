@@ -4,6 +4,7 @@ export const MetricsResultSuccessLabelValue = "success";
 export const MetricsResultFailedLabelValue = "failed";
 
 export const SharePointStatusQueued = "I kø";
+export const SharePointStatusFailed = "Feilet";
 export const SharePointStatusFailedWillRetry = "Feilet, vil forsøkes igjen";
 export const SharePointStatusFailedNoRetry = "Feilet, vil ikke forsøkes igjen";
 export const SharePointStatusSuccess = "Fullført";

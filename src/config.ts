@@ -95,32 +95,70 @@ export const getMongoDbDatabaseName = (): string => {
 };
 
 export const getSharePointConfig = (): SharePointConfig => {
-  const siteId: string = process.env.SP_SITE_ID;
-  const listId: string = process.env.SP_LIST_ID;
-  const handledErrorThreshold: number = parseInt(process.env.SP_HANDLED_ERROR_THRESHOLD ?? "3", 10);
-  const unhandledTop: number = parseInt(process.env.SP_LIST_UNHANDLED_TOP ?? "3", 10);
+  const csvOrderSiteId: string = process.env.SP_CSV_ORDER_SITE_ID;
+  const csvOrderListId: string = process.env.SP_CSV_ORDER_LIST_ID;
 
-  if (!siteId) {
-    throw new Error("SP_SITE_ID is not set in environment variables");
+  const csvExportSiteId: string = process.env.SP_CSV_EXPORT_SITE_ID;
+  const csvExportDriveId: string = process.env.SP_CSV_EXPORT_DRIVE_ID;
+  const csvExportListId: string = process.env.SP_CSV_EXPORT_LIST_ID;
+
+  const invoiceSiteId: string = process.env.SP_INVOICE_SITE_ID;
+  const invoiceListId: string = process.env.SP_INVOICE_LIST_ID;
+  const invoiceHandledErrorThreshold: number = parseInt(process.env.SP_INVOICE_HANDLED_ERROR_THRESHOLD ?? "3", 10);
+  const invoiceUnhandledTop: number = parseInt(process.env.SP_INVOICE_LIST_UNHANDLED_TOP ?? "3", 10);
+
+  if (!csvOrderSiteId) {
+    throw new Error("SP_CSV_ORDER_SITE_ID is not set in environment variables");
   }
 
-  if (!listId) {
-    throw new Error("SP_LIST_ID is not set in environment variables");
+  if (!csvOrderListId) {
+    throw new Error("SP_CSV_ORDER_LIST_ID is not set in environment variables");
   }
 
-  if (!Number.isInteger(handledErrorThreshold) || handledErrorThreshold < 1) {
-    throw new Error("SP_HANDLED_ERROR_THRESHOLD must be a positive integer");
+  if (!csvExportSiteId) {
+    throw new Error("SP_CSV_EXPORT_SITE_ID is not set in environment variables");
   }
 
-  if (!Number.isInteger(unhandledTop) || unhandledTop < 1) {
-    throw new Error("SP_LIST_UNHANDLED_TOP must be a positive integer");
+  if (!csvExportDriveId) {
+    throw new Error("SP_CSV_EXPORT_DRIVE_ID is not set in environment variables");
+  }
+
+  if (!csvExportListId) {
+    throw new Error("SP_CSV_EXPORT_LIST_ID is not set in environment variables");
+  }
+
+  if (!invoiceSiteId) {
+    throw new Error("SP_INVOICE_SITE_ID is not set in environment variables");
+  }
+
+  if (!invoiceListId) {
+    throw new Error("SP_INVOICE_LIST_ID is not set in environment variables");
+  }
+
+  if (!Number.isInteger(invoiceHandledErrorThreshold) || invoiceHandledErrorThreshold < 1) {
+    throw new Error("SP_INVOICE_HANDLED_ERROR_THRESHOLD must be a positive integer");
+  }
+
+  if (!Number.isInteger(invoiceUnhandledTop) || invoiceUnhandledTop < 1) {
+    throw new Error("SP_INVOICE_LIST_UNHANDLED_TOP must be a positive integer");
   }
 
   return {
-    handledErrorThreshold,
-    listId,
-    siteId,
-    unhandledTop
+    csvOrder: {
+      listId: csvOrderListId,
+      siteId: csvOrderSiteId
+    },
+    csvExport: {
+      driveId: csvExportDriveId,
+      listId: csvExportListId,
+      siteId: csvExportSiteId
+    },
+    invoice: {
+      handledErrorThreshold: invoiceHandledErrorThreshold,
+      listId: invoiceListId,
+      siteId: invoiceSiteId,
+      unhandledTop: invoiceUnhandledTop
+    }
   };
 };
 
