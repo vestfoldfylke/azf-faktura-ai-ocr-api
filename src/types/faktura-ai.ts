@@ -9,6 +9,12 @@ export type CsvItem = Omit<
   entryId: number;
 };
 
+export type CsvResponse = {
+  csvContent?: string;
+  csvName?: string;
+  status: number;
+};
+
 export type ItemsToInsert = {
   workItemList: WorkItemList;
   workMongoItemList: WorkMongoItem[];
