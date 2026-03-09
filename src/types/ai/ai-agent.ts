@@ -9,7 +9,7 @@ export type AIVendorConfigMap = {
 };
 
 export interface IAIAgent {
-  _agentName: string;
+  agentName: string;
 
   ocrToStructuredJson: (base64Data: string, options: OcrRequestOptions<ZodObjectAnyShape, ZodObjectAnyShape>) => Promise<OcrProcessedResponse | null>;
 }

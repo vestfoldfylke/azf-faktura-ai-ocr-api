@@ -10,7 +10,7 @@ import { MistralAgent } from "./mistral/MistralAgent.js";
 import { OpenAIAgent } from "./openai/OpenAIAgent.js";
 
 export class AIAgent implements IAIAgent {
-  readonly _agentName: string = "AIAgent";
+  readonly agentName: string = "AIAgent";
 
   private aiAgent: IAIAgent;
 
@@ -19,10 +19,10 @@ export class AIAgent implements IAIAgent {
 
     if (aiAgentConfig.mistral) {
       this.aiAgent = new MistralAgent(aiAgentConfig.mistral);
-      logger.info("Initialized agent {AgentName} with model {Model}", this._agentName, aiAgentConfig.mistral.model);
+      logger.info("Initialized agent {AgentName} with model {Model}", this.aiAgent.agentName, aiAgentConfig.mistral.model);
     } else if (aiAgentConfig.openai) {
       this.aiAgent = new OpenAIAgent(aiAgentConfig.openai);
-      logger.info("Initialized agent {AgentName} with model {Model}", this._agentName, aiAgentConfig.openai.model);
+      logger.info("Initialized agent {AgentName} with model {Model}", this.aiAgent.agentName, aiAgentConfig.openai.model);
     } else {
       throw new Error("No valid AI agent configuration found. Please check environment variables.");
     }
