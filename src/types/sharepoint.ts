@@ -1,4 +1,5 @@
 import type {
+  SharePointStatusFailed,
   SharePointStatusFailedNoRetry,
   SharePointStatusFailedWillRetry,
   SharePointStatusQueued,
@@ -10,15 +11,28 @@ export type CollectionResponse<T> = {
   value: T[];
 };
 
-export type Status =
+export type CsvStatus = typeof SharePointStatusQueued | typeof SharePointStatusFailed | typeof SharePointStatusSuccess;
+
+export type InvoiceStatus =
   | typeof SharePointStatusQueued
   | typeof SharePointStatusFailedWillRetry
   | typeof SharePointStatusFailedNoRetry
   | typeof SharePointStatusSuccess;
 
-export type MarkItemAsHandledRequest = {
+export type MarkCsvItemAsHandledRequest = {
   HandledAt: string;
-  Status: Status;
+  Status: CsvStatus;
+  Download?: {
+    Description: string;
+    Url: string;
+  };
+  WorkItemCount?: number;
+  FindingsCount?: number;
+};
+
+export type MarkInvoiceItemAsHandledRequest = {
+  HandledAt: string;
+  Status: InvoiceStatus;
   HandledCount: number;
   InsertedCount: number;
   InvoiceNumber: string;
@@ -26,8 +40,19 @@ export type MarkItemAsHandledRequest = {
 };
 
 export type SharePointConfig = {
-  handledErrorThreshold: number;
-  listId: string;
-  siteId: string;
-  unhandledTop: number;
+  csvOrder: {
+    listId: string;
+    siteId: string;
+  };
+  csvExport: {
+    driveId: string;
+    listId: string;
+    siteId: string;
+  };
+  invoice: {
+    handledErrorThreshold: number;
+    listId: string;
+    siteId: string;
+    unhandledTop: number;
+  };
 };

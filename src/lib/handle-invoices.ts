@@ -16,20 +16,20 @@ import type { ProcessedInvoice } from "../types/faktura-ai.js";
 import type { SharePointConfig } from "../types/sharepoint.js";
 
 import { processInvoice } from "./process-invoice.js";
-import { getItemContentAsBase64, getListItems, markItemAsHandled } from "./sharepoint-fns.js";
+import { getInvoiceListItems, getItemContentAsBase64, markInvoiceItemAsHandled } from "./sharepoint-fns.js";
 
 const sharePointConfig: SharePointConfig = getSharePointConfig();
 
 export const handleInvoices = async (): Promise<ListItem[]> => {
   // get items from sharepoint list which isn't handled or has failed previously
-  const items: ListItem[] = await getListItems(
-    sharePointConfig.siteId,
-    sharePointConfig.listId,
-    sharePointConfig.handledErrorThreshold,
-    sharePointConfig.unhandledTop
+  const items: ListItem[] = await getInvoiceListItems(
+    sharePointConfig.invoice.siteId,
+    sharePointConfig.invoice.listId,
+    sharePointConfig.invoice.handledErrorThreshold,
+    sharePointConfig.invoice.unhandledTop
   );
   logger.info(
-    "Retrieved {ItemCount} items to handle: {@FileNames}",
+    "Retrieved {ItemCount} invoice items to handle: {@FileNames}",
     items.length,
     items.map((item: ListItem) => item.fields["LinkFilename"])
   );
@@ -43,7 +43,7 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
       prefix: `${logFileIndexStr} - ${filename}`
     });
 
-    const content: string = await getItemContentAsBase64(sharePointConfig.siteId, sharePointConfig.listId, listItem.id);
+    const content: string = await getItemContentAsBase64(sharePointConfig.invoice.siteId, sharePointConfig.invoice.listId, listItem.id);
 
     const processedInvoice: ProcessedInvoice = await processInvoice(filename, content, logFileIndexStr);
     const handledCount: number = (listItem.fields["HandledCount"] as number) + 1;
@@ -55,9 +55,9 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
     if (processedInvoice.alreadyProcessed) {
       const insertedCount: number = listItem.fields["InsertedCount"] as number;
       const invoiceNumber: string = listItem.fields["InvoiceNumber"] as string;
-      await markItemAsHandled(
-        sharePointConfig.siteId,
-        sharePointConfig.listId,
+      await markInvoiceItemAsHandled(
+        sharePointConfig.invoice.siteId,
+        sharePointConfig.invoice.listId,
         listItem.id,
         SharePointStatusSuccess,
         handledCount,
@@ -71,9 +71,9 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
     }
 
     if (processedInvoice.processedSuccessfully) {
-      await markItemAsHandled(
-        sharePointConfig.siteId,
-        sharePointConfig.listId,
+      await markInvoiceItemAsHandled(
+        sharePointConfig.invoice.siteId,
+        sharePointConfig.invoice.listId,
         listItem.id,
         SharePointStatusSuccess,
         handledCount,
@@ -85,12 +85,12 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
       continue;
     }
 
-    const willRetry: boolean = handledCount < sharePointConfig.handledErrorThreshold;
+    const willRetry: boolean = handledCount < sharePointConfig.invoice.handledErrorThreshold;
     const retryMessage: string = willRetry ? SharePointErrorReasonWillRetry : SharePointErrorReasonNoRetry;
 
-    await markItemAsHandled(
-      sharePointConfig.siteId,
-      sharePointConfig.listId,
+    await markInvoiceItemAsHandled(
+      sharePointConfig.invoice.siteId,
+      sharePointConfig.invoice.listId,
       listItem.id,
       willRetry ? SharePointStatusFailedWillRetry : SharePointStatusFailedNoRetry,
       handledCount,
@@ -110,7 +110,7 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
         "Item with Id {ItemId} failed to process. Marked as '{Status}' in SharePoint. Reached maximum retry attempts ({MaxAttempts}). Will not retry this item anymore",
         listItem.id,
         SharePointStatusFailedNoRetry,
-        sharePointConfig.handledErrorThreshold
+        sharePointConfig.invoice.handledErrorThreshold
       );
     }
   }

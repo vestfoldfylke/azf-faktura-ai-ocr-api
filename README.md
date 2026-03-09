@@ -11,8 +11,28 @@ This project uses Mistral AI's OCR model or OpenAI to automatically extract stru
 - Mistral AI API key [console.mistral.ai](https://console.mistral.ai)
 - OpenAI API key [platform.openai.com](https://platform.openai.com/api-keys)
 - MongoDB database
-- SharePoint site and list for unhandled documents (SP_SITE_ID, SP_LIST_ID)
-  - App registration (AZURE_CLIENT_ID) needs Sites.Selected application permission with write access to the SharePoint site defined in SP_SITE_ID. [See documentation here](#)
+- SharePoint site and list for invoices to handle (SP_INVOICE_SITE_ID, SP_INVOICE_LIST_ID)
+  - App registration (AZURE_CLIENT_ID) needs Sites.Selected application permission with write access to the SharePoint site defined in SP_INVOICE_SITE_ID. [See documentation here](#2-setup-and-grant-permissions-to-azure-ad-app-registration)
+  - Needs the following columns:
+    - `HandledCount` (**number**, default value 0)
+    - `Error` (**multiple lines of text**, default value empty)
+    - `HandledAt` (**date and time**, default value none)
+    - `InsertedCount` (**number**, default value 0)
+    - `InvoiceNumber` (**single line of text**, default value "N/A")
+    - `Status` (**choice**, `I kø`, `Feilet, vil forsøkes igjen`, `Feilet, vil ikke forsøkes igjen`, `Fullført`). default value `I kø`
+- SharePoint site and list for csv export ordering (SP_CSV_ORDER_SITE_ID, SP_CSV_ORDER_LIST_ID)
+    - App registration (AZURE_CLIENT_ID) needs Sites.Selected application permission with write access to the SharePoint site defined in SP_CSV_ORDER_SITE_ID. [See documentation here](#2-setup-and-grant-permissions-to-azure-ad-app-registration)
+    - Needs the following columns:
+      - `Status` (**choice**, `I kø`, `Feilet`, `Fullført`). default value `I kø`
+      - `FromDate` (**date only**, default value none)
+      - `ToDate` (**date only**, default value none)
+      - `Download` (**hyperlink**)
+      - `HandledAt` (**date and time**, default value none)
+      - `WorkItemCount` (**number**, default value 0)
+      - `FindingsCount` (**number**, default value 0)
+- SharePoint site and list for exported csv files (SP_CSV_EXPORT_SITE_ID, SP_CSV_EXPORT_LIST_ID)
+    - App registration (AZURE_CLIENT_ID) needs Sites.Selected application permission with write access to the SharePoint site defined in SP_CSV_EXPORT_SITE_ID. [See documentation here](#2-setup-and-grant-permissions-to-azure-ad-app-registration)
+    - Uses only predefined columns
 
 ## Installation
 
@@ -56,29 +76,42 @@ npm install
 ### 3. Configure Environment Variables
 
 Create a `local.settings.json` file in the project root with the following content:
+
 ```json5
 {
   "IsEncrypted": false,
   "Values": {
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "InvoiceReadSchedule": "0 0 */1 * * *", // Cron expression for how often the function should run
+    "ExportCsvSchedule": "0 */5 * * * *",
+    // Cron expression for how often the function should run
+    "InvoiceReadSchedule": "0 0 */1 * * *",
+    // Cron expression for how often the function should run
     "AZURE_CLIENT_ID": "client-id-here",
     "AZURE_CLIENT_SECRET": "client-secret-here",
     "AZURE_TENANT_ID": "tenant-id-here",
     "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
-    "MISTRAL_MODEL_NAME": "mistral-ocr-latest", // set to a model that supports OCR
+    "MISTRAL_MODEL_NAME": "mistral-ocr-latest",
+    // set to a model that supports OCR
     "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
-    "OPENAI_MODEL_NAME:": "gpt-4o", // set to a model that supports OCR
+    "OPENAI_MODEL_NAME:": "gpt-4o",
+    // set to a model that supports OCR
     "OCR_MAX_PAGES_PER_CHUNK": "2",
     "OCR_PROCESS_ALREADY_PROCESSED_FILES": "false",
     "MONGODB_CONNECTION_STRING": "mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=azf-faktura-ai-ocr-api-local",
     "MONGODB_COLLECTION_NAME": "<db_collection_name>",
     "MONGODB_DATABASE_NAME": "<db_name>",
-    "SP_SITE_ID": "site-id-here",
-    "SP_LIST_ID": "list-id-here",
-    "SP_LIST_UNHANDLED_TOP": "2", // Number of unhandled PDF documents to list from SharePoint per execution. Should not be set too high to avoid azure function timeout.
-    "SP_HANDLED_ERROR_THRESHOLD": "3", // Number of times a PDF document can be processed with errors before it is no longer attempted to be processed.
+    "SP_CSV_ORDER_SITE_ID": "site-id-here",
+    "SP_CSV_ORDER_LIST_ID": "list-id-here",
+    "SP_CSV_EXPORT_SITE_ID": "site-id-here",
+    "SP_CSV_EXPORT_DRIVE_ID": "drive-id-here",
+    "SP_CSV_EXPORT_LIST_ID": "list-id-here",
+    "SP_INVOICE_SITE_ID": "site-id-here",
+    "SP_INVOICE_LIST_ID": "list-id-here",
+    "SP_INVOICE_LIST_UNHANDLED_TOP": "2",
+    // Number of unhandled PDF documents to list from SharePoint per execution. Should not be set too high to avoid azure function timeout.
+    "SP_INVOICE_HANDLED_ERROR_THRESHOLD": "3",
+    // Number of times a PDF document can be processed with errors before it is no longer attempted to be processed.
     "BETTERSTACK_MIN_LOG_LEVEL": "info"
   }
 }
