@@ -43,7 +43,7 @@
     "@azure/functions": "^4.11.2",
     "@azure/identity": "^4.13.0",
     "@mistralai/mistralai": "^1.14.1",
-    "@vestfoldfylke/loglady": "^1.5.0",
+    "@vestfoldfylke/loglady": "^1.5.1",
     "@vestfoldfylke/vestfold-metrics": "^1.0.0",
     "mongodb": "^7.1.0",
     "openai": "^6.25.0",
