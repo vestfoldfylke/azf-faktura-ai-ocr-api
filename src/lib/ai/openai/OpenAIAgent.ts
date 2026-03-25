@@ -6,17 +6,17 @@ import type { ChatCompletion } from "openai/resources";
 import type { ZodSafeParseResult } from "zod";
 
 import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../../../constants.js";
-import type { AIVendorConfigMap, IAIAgent } from "../../../types/ai/ai-agent.js";
+import type { IAIAgent, OpenAIConfig } from "../../../types/ai/ai-agent.js";
 import type { OcrRequestOptions, ZodObjectAnyShape } from "../../../types/ai/ocr.js";
 import { type Invoice, InvoiceSchema } from "../../../types/ai/zod-ocr.js";
 import type { OcrProcessedResponse } from "../../../types/faktura-ai.js";
 
 export class OpenAIAgent implements IAIAgent {
   private readonly _openAiClient: OpenAI;
-  private readonly _openAiConfig: AIVendorConfigMap["openai"];
+  private readonly _openAiConfig: OpenAIConfig;
   readonly agentName: string = "OpenAI";
 
-  public constructor(config: AIVendorConfigMap["openai"]) {
+  public constructor(config: OpenAIConfig) {
     this._openAiClient = new OpenAI({ apiKey: config.apiKey });
     this._openAiConfig = config;
   }

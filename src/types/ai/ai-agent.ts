@@ -3,11 +3,6 @@ import type { OcrRequestOptions, ZodObjectAnyShape } from "./ocr.js";
 
 export type AIVendor = "mistral" | "openai";
 
-export type AIVendorConfigMap = {
-  mistral: MistralConfig;
-  openai: OpenAIConfig;
-};
-
 export interface IAIAgent {
   agentName: string;
 
@@ -15,11 +10,15 @@ export interface IAIAgent {
 }
 
 export type MistralConfig = {
+  type: "mistral";
   apiKey: string;
   model: string;
 };
 
 export type OpenAIConfig = {
+  type: "openai";
   apiKey: string;
   model: string;
 };
+
+export type AIVendorConfig = MistralConfig | OpenAIConfig;

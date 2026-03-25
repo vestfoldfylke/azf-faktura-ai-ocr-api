@@ -2,7 +2,7 @@ import { logger } from "@vestfoldfylke/loglady";
 
 import { getAIAgentConfig } from "../../config.js";
 
-import type { AIVendor, AIVendorConfigMap, IAIAgent } from "../../types/ai/ai-agent.js";
+import type { AIVendorConfig, IAIAgent } from "../../types/ai/ai-agent.js";
 import type { OcrRequestOptions, ZodObjectAnyShape } from "../../types/ai/ocr.js";
 import type { OcrProcessedResponse } from "../../types/faktura-ai.js";
 
@@ -15,17 +15,17 @@ export class AIAgent implements IAIAgent {
   private aiAgent: IAIAgent;
 
   public constructor() {
-    const aiAgentConfig: Partial<Record<AIVendor, AIVendorConfigMap[AIVendor]>> = getAIAgentConfig();
+    const aiAgentConfig: AIVendorConfig = getAIAgentConfig();
 
-    if (aiAgentConfig.mistral) {
-      this.aiAgent = new MistralAgent(aiAgentConfig.mistral);
-      logger.info("Initialized agent {AgentName} with model {Model}", this.aiAgent.agentName, aiAgentConfig.mistral.model);
-    } else if (aiAgentConfig.openai) {
-      this.aiAgent = new OpenAIAgent(aiAgentConfig.openai);
-      logger.info("Initialized agent {AgentName} with model {Model}", this.aiAgent.agentName, aiAgentConfig.openai.model);
+    if (aiAgentConfig.type === "mistral") {
+      this.aiAgent = new MistralAgent(aiAgentConfig);
+    } else if (aiAgentConfig.type === "openai") {
+      this.aiAgent = new OpenAIAgent(aiAgentConfig);
     } else {
       throw new Error("No valid AI agent configuration found. Please check environment variables.");
     }
+
+    logger.info("Initialized agent '{AgentName}' with model '{Model}'", this.aiAgent.agentName, aiAgentConfig.model);
   }
 
   public ocrToStructuredJson(

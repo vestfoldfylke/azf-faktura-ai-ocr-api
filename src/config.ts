@@ -1,7 +1,7 @@
-import type { AIVendor, AIVendorConfigMap } from "./types/ai/ai-agent.js";
+import type { AIVendor, AIVendorConfig } from "./types/ai/ai-agent.js";
 import type { SharePointConfig } from "./types/sharepoint.js";
 
-const getMistralConfig = (): AIVendorConfigMap["mistral"] | undefined => {
+const getMistralConfig = (): AIVendorConfig | undefined => {
   const apiKey: string = process.env.MISTRAL_API_KEY;
   const model: string = process.env.MISTRAL_MODEL_NAME || "mistral-ocr-latest";
 
@@ -10,12 +10,13 @@ const getMistralConfig = (): AIVendorConfigMap["mistral"] | undefined => {
   }
 
   return {
+    type: "mistral",
     apiKey,
     model
   };
 };
 
-const getOpenAIConfig = (): AIVendorConfigMap["openai"] | undefined => {
+const getOpenAIConfig = (): AIVendorConfig | undefined => {
   const apiKey: string = process.env.OPENAI_API_KEY;
   const model: string = process.env.OPENAI_MODEL_NAME || "gpt-4o";
 
@@ -24,34 +25,38 @@ const getOpenAIConfig = (): AIVendorConfigMap["openai"] | undefined => {
   }
 
   return {
+    type: "openai",
     apiKey,
     model
   };
 };
 
-export const getAIAgentConfig = (): Partial<Record<AIVendor, AIVendorConfigMap[AIVendor]>> => {
-  const configs: Partial<Record<AIVendor, AIVendorConfigMap[AIVendor]>> = {};
+export const getAIAgentConfig = (): AIVendorConfig => {
+  const activeAiAgent: AIVendor | undefined = process.env.ACTIVE_AI_AGENT_PROVIDER as AIVendor;
 
-  const mistral: AIVendorConfigMap["mistral"] | undefined = getMistralConfig();
-  if (mistral) {
-    configs.mistral = mistral;
+  if (!activeAiAgent) {
+    throw new Error("No active AI agent provider is set in environment variables");
   }
 
-  const openai: AIVendorConfigMap["openai"] | undefined = getOpenAIConfig();
-  if (openai) {
-    configs.openai = openai;
+  if (activeAiAgent === "mistral") {
+    const mistralConfig: AIVendorConfig | undefined = getMistralConfig();
+    if (!mistralConfig) {
+      throw new Error("Active AI agent provider Mistral has no config set in environment variables");
+    }
+
+    return mistralConfig;
   }
 
-  const aiAgentConfigCount: number = Object.keys(configs).length;
-  if (aiAgentConfigCount === 0) {
-    throw new Error("No AI vendor config are set in environment variables");
+  if (activeAiAgent === "openai") {
+    const openaiConfig: AIVendorConfig | undefined = getOpenAIConfig();
+    if (!openaiConfig) {
+      throw new Error("Active AI agent provider OpenAI has no config set in environment variables");
+    }
+
+    return openaiConfig;
   }
 
-  if (aiAgentConfigCount > 1) {
-    throw new Error(`Multiple (${aiAgentConfigCount}) AI vendor config are set in environment variables. Please set only one to avoid conflicts.`);
-  }
-
-  return configs;
+  throw new Error("Invalid active AI agent provider set in environment variables");
 };
 
 /**
