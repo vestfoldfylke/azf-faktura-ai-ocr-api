@@ -74,7 +74,7 @@ export const processInvoice = async (filename: string, base64Data: string, logFi
     });
 
     const invoiceResponse: OcrProcessedResponse | null = await handleOcrChunk(chunkedParts[i]);
-    if (!invoiceResponse || !invoiceResponse.invoice) {
+    if (!invoiceResponse?.invoice) {
       if (i === 0) {
         logger.error("OCR processing failed for first chunk. Skipping invoice");
         processedInvoice.parsedInvoiceChunks.push(null);
