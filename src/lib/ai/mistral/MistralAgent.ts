@@ -5,17 +5,17 @@ import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { ZodSafeParseResult } from "zod";
 
 import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../../../constants.js";
-import type { AIVendorConfigMap, IAIAgent } from "../../../types/ai/ai-agent.js";
+import type { IAIAgent, MistralConfig } from "../../../types/ai/ai-agent.js";
 import type { OcrRequestOptions, ZodObjectAnyShape } from "../../../types/ai/ocr.js";
 import { type Invoice, InvoiceSchema } from "../../../types/ai/zod-ocr.js";
 import type { OcrProcessedResponse } from "../../../types/faktura-ai.js";
 
 export class MistralAgent implements IAIAgent {
   private readonly _mistralClient: Mistral;
-  private readonly _mistralConfig: AIVendorConfigMap["mistral"];
+  private readonly _mistralConfig: MistralConfig;
   readonly agentName: string = "Mistral";
 
-  public constructor(config: AIVendorConfigMap["mistral"]) {
+  public constructor(config: MistralConfig) {
     this._mistralClient = new Mistral({ apiKey: config.apiKey });
     this._mistralConfig = config;
   }
