@@ -40,7 +40,7 @@ jobs:
           popd
           
       - name: "Resolve Production Project Dependencies Using Npm"
-        shell: pwsh
+        shell: bash
         run: |
           pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
           npm ci --omit=dev
