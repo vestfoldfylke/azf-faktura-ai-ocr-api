@@ -148,7 +148,11 @@ const findCsvItemsWithProblems = (csvItems: CsvItem[]): ProblematicCsvItem[] => 
   // Check for duplicate entries and overlapping time periods
   for (const csvItem of csvItems) {
     for (const otherCsvItem of csvItems) {
-      if (csvItem.employee !== otherCsvItem.employee || csvItem.entryId === otherCsvItem.entryId) {
+      if (
+        csvItem.invoiceNumber !== otherCsvItem.invoiceNumber ||
+        csvItem.employee !== otherCsvItem.employee ||
+        csvItem.entryId === otherCsvItem.entryId
+      ) {
         continue;
       }
 
