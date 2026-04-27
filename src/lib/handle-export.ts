@@ -122,6 +122,8 @@ export const handleExport = async (): Promise<HttpResponseInit> => {
   };
 };
 
+const trimItemEntry = (entry: string): string => entry.trim().replace("\r\n", " - ").replace("\n", " - ");
+
 const convertCsvItemsToCsv = (csvItems: CsvItem[], problematicEntries: ProblematicCsvItem[]) => {
   let csvContent = '"OppføringsId","Fakturanummer","FraDato","FraTid","TilDato","TilTid","Timer totalt","Ansatt","Prosjekt","Aktivitet","Funn"\n';
 
@@ -129,14 +131,17 @@ const convertCsvItemsToCsv = (csvItems: CsvItem[], problematicEntries: Problemat
     const problemsForItem: ProblematicCsvItem[] = problematicEntries.filter(
       (problematicEntry: ProblematicCsvItem) => problematicEntry.entryId - 1 === index
     );
+
+    const csvContentItem: string = `"${csvItem.entryId}","${trimItemEntry(csvItem.invoiceNumber)}","${trimItemEntry(csvItem.fromDate)}","${trimItemEntry(csvItem.fromTime)}","${trimItemEntry(csvItem.toDate)}","${trimItemEntry(csvItem.toTime)}","${trimItemEntry(csvItem.totalHour.toString().replace(".", ","))}","${trimItemEntry(csvItem.employee)}","${trimItemEntry(csvItem.project ?? "")}","${trimItemEntry(csvItem.activity ?? "")}"`;
+
     if (problemsForItem.length === 0) {
-      csvContent += `"${csvItem.entryId}","${csvItem.invoiceNumber}","${csvItem.fromDate}","${csvItem.fromTime}","${csvItem.toDate}","${csvItem.toTime}","${csvItem.totalHour.toString().replace(".", ",")}","${csvItem.employee}","${csvItem.project ?? ""}","${csvItem.activity ?? ""}",""\n`;
+      csvContent += `${csvContentItem},""\n`;
       return;
     }
 
     const problemStr: string = problemsForItem.map((problemForItem: ProblematicCsvItem) => problemForItem.reason).join(" -- ");
 
-    csvContent += `"${csvItem.entryId}","${csvItem.invoiceNumber}","${csvItem.fromDate}","${csvItem.fromTime}","${csvItem.toDate}","${csvItem.toTime}","${csvItem.totalHour.toString().replace(".", ",")}","${csvItem.employee}","${csvItem.project ?? ""}","${csvItem.activity ?? ""}","${problemStr}"\n`;
+    csvContent += `${csvContentItem},"${problemStr}"\n`;
   });
 
   return csvContent;
@@ -148,7 +153,11 @@ const findCsvItemsWithProblems = (csvItems: CsvItem[]): ProblematicCsvItem[] => 
   // Check for duplicate entries and overlapping time periods
   for (const csvItem of csvItems) {
     for (const otherCsvItem of csvItems) {
-      if (csvItem.employee !== otherCsvItem.employee || csvItem.entryId === otherCsvItem.entryId) {
+      if (
+        csvItem.invoiceNumber !== otherCsvItem.invoiceNumber ||
+        csvItem.employee !== otherCsvItem.employee ||
+        csvItem.entryId === otherCsvItem.entryId
+      ) {
         continue;
       }
 
