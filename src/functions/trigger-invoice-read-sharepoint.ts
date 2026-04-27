@@ -1,14 +1,14 @@
 import { app, type HttpRequest, type HttpResponseInit, type InvocationContext } from "@azure/functions";
-import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { handleInvoices } from "../lib/handle-invoices.js";
 import { errorTriggerHandling } from "../middleware/error-handling.js";
+import type { InvoiceItem } from "../types/sharepoint.js";
 
 const triggerInvoiceRead = async (_request: HttpRequest, _context: InvocationContext): Promise<HttpResponseInit> => {
   logger.info("Manually triggered to read invoices from SharePoint list");
 
-  const response: ListItem[] = await handleInvoices();
+  const response: InvoiceItem[] = await handleInvoices();
 
   return {
     jsonBody: response

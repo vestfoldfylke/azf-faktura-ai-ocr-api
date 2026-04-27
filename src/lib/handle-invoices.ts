@@ -1,4 +1,3 @@
-import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
 
 import { getSharePointConfig } from "../config.js";
@@ -13,16 +12,16 @@ import {
 } from "../constants.js";
 
 import type { ProcessedInvoice } from "../types/faktura-ai.js";
-import type { SharePointConfig } from "../types/sharepoint.js";
+import type { InvoiceItem, SharePointConfig } from "../types/sharepoint.js";
 
 import { processInvoice } from "./process-invoice.js";
 import { getInvoiceListItems, getItemContentAsBase64, markInvoiceItemAsHandled } from "./sharepoint-fns.js";
 
 const sharePointConfig: SharePointConfig = getSharePointConfig();
 
-export const handleInvoices = async (): Promise<ListItem[]> => {
+export const handleInvoices = async (): Promise<InvoiceItem[]> => {
   // get items from sharepoint list which isn't handled or has failed previously
-  const items: ListItem[] = await getInvoiceListItems(
+  const items: InvoiceItem[] = await getInvoiceListItems(
     sharePointConfig.invoice.siteId,
     sharePointConfig.invoice.listId,
     sharePointConfig.invoice.handledErrorThreshold,
@@ -31,12 +30,12 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
   logger.info(
     "Retrieved {ItemCount} invoice items to handle: {@FileNames}",
     items.length,
-    items.map((item: ListItem) => item.fields["LinkFilename"])
+    items.map((item: InvoiceItem) => item.fields.LinkFilename)
   );
 
   for (let i: number = 0; i < items.length; i++) {
-    const listItem: ListItem = items[i];
-    const filename: string = listItem.fields["LinkFilename"];
+    const listItem: InvoiceItem = items[i];
+    const filename: string = listItem.fields.LinkFilename;
     const logFileIndexStr: string = `[${i + 1} / ${items.length}]`;
 
     logger.logConfig({
@@ -46,15 +45,15 @@ export const handleInvoices = async (): Promise<ListItem[]> => {
     const content: string = await getItemContentAsBase64(sharePointConfig.invoice.siteId, sharePointConfig.invoice.listId, listItem.id);
 
     const processedInvoice: ProcessedInvoice = await processInvoice(filename, content, logFileIndexStr);
-    const handledCount: number = (listItem.fields["HandledCount"] as number) + 1;
+    const handledCount: number = listItem.fields.HandledCount + 1;
 
     logger.logConfig({
       prefix: logFileIndexStr
     });
 
     if (processedInvoice.alreadyProcessed) {
-      const insertedCount: number = listItem.fields["InsertedCount"] as number;
-      const invoiceNumber: string = listItem.fields["InvoiceNumber"] as string;
+      const insertedCount: number = listItem.fields.InsertedCount;
+      const invoiceNumber: string = listItem.fields.InvoiceNumber;
       await markInvoiceItemAsHandled(
         sharePointConfig.invoice.siteId,
         sharePointConfig.invoice.listId,

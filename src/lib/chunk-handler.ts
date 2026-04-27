@@ -132,10 +132,15 @@ export const handleOcrChunk = async (base64Data: string): Promise<OcrProcessedRe
 
 export const getItemsToInsert = (
   invoiceResponse: OcrProcessedResponse,
-  invoiceNumber: string,
+  invoiceNumber: string | null,
   pdfChunk: number,
   maxPagesPerChunk: number
 ): ItemsToInsert => {
+  if (!invoiceResponse.invoice) {
+    logger.error("Invoice not set on invoiceResponse...");
+    throw new Error("Invoice not set on invoiceResponse...");
+  }
+
   if (invoiceResponse.invoice.workLists.length === 0) {
     logger.info("No work items found in document annotation.");
     return {
@@ -190,7 +195,7 @@ export const getItemsToInsert = (
       fromDateTime: getDateTime(workItem.fromDate, workItem.fromTime),
       id: workItem.id,
       insertedDate: new Date(),
-      invoiceNumber,
+      invoiceNumber: invoiceNumber || "",
       pdfChunk,
       pdfChunkPageNumber: workItem.pageNumber,
       pdfOriginalPageNumber: getPdfPageNumber(pdfChunk, maxPagesPerChunk, workItem.pageNumber),

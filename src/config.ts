@@ -2,7 +2,7 @@ import type { AIVendor, AIVendorConfig } from "./types/ai/ai-agent.js";
 import type { SharePointConfig } from "./types/sharepoint.js";
 
 const getMistralConfig = (): AIVendorConfig | undefined => {
-  const apiKey: string = process.env.MISTRAL_API_KEY;
+  const apiKey: string | undefined = process.env.MISTRAL_API_KEY;
   const model: string = process.env.MISTRAL_MODEL_NAME || "mistral-ocr-latest";
 
   if (!apiKey) {
@@ -17,7 +17,7 @@ const getMistralConfig = (): AIVendorConfig | undefined => {
 };
 
 const getOpenAIConfig = (): AIVendorConfig | undefined => {
-  const apiKey: string = process.env.OPENAI_API_KEY;
+  const apiKey: string | undefined = process.env.OPENAI_API_KEY;
   const model: string = process.env.OPENAI_MODEL_NAME || "gpt-4o";
 
   if (!apiKey) {
@@ -66,11 +66,11 @@ export const getAIAgentConfig = (): AIVendorConfig => {
 export const getOcrMaxPagesPerPdfChunk = (): number => {
   const maxPages: number | undefined = process.env.OCR_MAX_PAGES_PER_CHUNK ? parseInt(process.env.OCR_MAX_PAGES_PER_CHUNK, 10) : undefined;
 
-  return Number.isInteger(maxPages) && maxPages > 0 && maxPages <= 8 ? maxPages : 4;
+  return Number.isInteger(maxPages) && maxPages !== undefined && maxPages > 0 && maxPages <= 8 ? maxPages : 4;
 };
 
 export const getMongoDbConnectionString = (): string => {
-  const connectionString: string = process.env.MONGODB_CONNECTION_STRING;
+  const connectionString: string | undefined = process.env.MONGODB_CONNECTION_STRING;
 
   if (!connectionString) {
     throw new Error("MONGODB_CONNECTION_STRING is not set in environment variables");
@@ -80,7 +80,7 @@ export const getMongoDbConnectionString = (): string => {
 };
 
 export const getMongoDbCollectionName = (): string => {
-  const collectionName: string = process.env.MONGODB_COLLECTION_NAME;
+  const collectionName: string | undefined = process.env.MONGODB_COLLECTION_NAME;
 
   if (!collectionName) {
     throw new Error("MONGODB_COLLECTION_NAME is not set in environment variables");
@@ -90,7 +90,7 @@ export const getMongoDbCollectionName = (): string => {
 };
 
 export const getMongoDbDatabaseName = (): string => {
-  const databaseName: string = process.env.MONGODB_DATABASE_NAME;
+  const databaseName: string | undefined = process.env.MONGODB_DATABASE_NAME;
 
   if (!databaseName) {
     throw new Error("MONGODB_DATABASE_NAME is not set in environment variables");
@@ -100,15 +100,15 @@ export const getMongoDbDatabaseName = (): string => {
 };
 
 export const getSharePointConfig = (): SharePointConfig => {
-  const csvOrderSiteId: string = process.env.SP_CSV_ORDER_SITE_ID;
-  const csvOrderListId: string = process.env.SP_CSV_ORDER_LIST_ID;
+  const csvOrderSiteId: string | undefined = process.env.SP_CSV_ORDER_SITE_ID;
+  const csvOrderListId: string | undefined = process.env.SP_CSV_ORDER_LIST_ID;
 
-  const csvExportSiteId: string = process.env.SP_CSV_EXPORT_SITE_ID;
-  const csvExportDriveId: string = process.env.SP_CSV_EXPORT_DRIVE_ID;
-  const csvExportListId: string = process.env.SP_CSV_EXPORT_LIST_ID;
+  const csvExportSiteId: string | undefined = process.env.SP_CSV_EXPORT_SITE_ID;
+  const csvExportDriveId: string | undefined = process.env.SP_CSV_EXPORT_DRIVE_ID;
+  const csvExportListId: string | undefined = process.env.SP_CSV_EXPORT_LIST_ID;
 
-  const invoiceSiteId: string = process.env.SP_INVOICE_SITE_ID;
-  const invoiceListId: string = process.env.SP_INVOICE_LIST_ID;
+  const invoiceSiteId: string | undefined = process.env.SP_INVOICE_SITE_ID;
+  const invoiceListId: string | undefined = process.env.SP_INVOICE_LIST_ID;
   const invoiceHandledErrorThreshold: number = parseInt(process.env.SP_INVOICE_HANDLED_ERROR_THRESHOLD ?? "3", 10);
   const invoiceUnhandledTop: number = parseInt(process.env.SP_INVOICE_LIST_UNHANDLED_TOP ?? "3", 10);
 

@@ -76,9 +76,9 @@ export const insertWorkItemsToDb = async (workItems: WorkMongoItem[]): Promise<s
       workItems.length,
       collectionName
     );
-
-    return [];
   }
+
+  throw new Error(`Failed somewhere above on inserting ${workItems.length} work items into collection`);
 };
 
 export const invoiceNumberExistsInDb = async (invoiceNumber: string): Promise<boolean> => {
