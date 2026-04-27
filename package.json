@@ -42,7 +42,7 @@
   "dependencies": {
     "@azure/functions": "^4.14.0",
     "@azure/identity": "^4.13.1",
-    "@mistralai/mistralai": "^1.14.1",
+    "@mistralai/mistralai": "^2.2.1",
     "@vestfoldfylke/loglady": "^1.5.3",
     "@vestfoldfylke/vestfold-metrics": "^1.0.1",
     "mongodb": "^7.2.0",
