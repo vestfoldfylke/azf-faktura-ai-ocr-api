@@ -6,11 +6,11 @@ name: Build and deploy Node.js TypeScript project to Azure Function App - PROD
 on:
   release:
     types: [published]
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
+    if: github.event.release.target_commitish == 'main' # Only run this workflow if the release is created from the main branch
     uses: vestfoldfylke/shared/.github/workflows/deploy-az-app-service-node.yml@main
     with:
       azure_appname: 'vfkplzintegfai'
