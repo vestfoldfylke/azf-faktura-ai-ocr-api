@@ -47,10 +47,15 @@ export async function errorTriggerHandling(
     }
 
     logger.errorException(error, "Error on {Method} to {Url} with status {Status}", request.method, request.url, 400);
-    return {
-      status: 400,
-      body: error.message
-    };
+
+    if (error instanceof Error) {
+      return {
+        status: 500,
+        body: error.message
+      };
+    }
+
+    throw new HTTPError(500, "Internal Server Error");
   } finally {
     await logger.flush();
   }

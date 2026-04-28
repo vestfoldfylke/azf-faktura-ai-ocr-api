@@ -1,5 +1,4 @@
 import type { HttpResponseInit } from "@azure/functions";
-import type { ListItem } from "@microsoft/microsoft-graph-types";
 import { logger } from "@vestfoldfylke/loglady";
 import type { WithId } from "mongodb";
 
@@ -7,7 +6,7 @@ import { getSharePointConfig } from "../config.js";
 import { SharePointStatusFailed, SharePointStatusSuccess } from "../constants.js";
 
 import type { CsvItem, ProblematicCsvItem } from "../types/faktura-ai.js";
-import type { SharePointConfig } from "../types/sharepoint.js";
+import type { OrderCsvItem, SharePointConfig } from "../types/sharepoint.js";
 import type { WorkMongoItem } from "../types/zod-mongo.js";
 
 import { getWorkItemsInDateRangeFromDb } from "./mongodb-fns.js";
@@ -19,19 +18,19 @@ const dateRegex: RegExp = /^\d{4}-\d{2}-\d{2}$/;
 
 export const handleExport = async (): Promise<HttpResponseInit> => {
   // get items from sharepoint list which isn't handled
-  const items: ListItem[] = await getCsvListItems(sharePointConfig.csvOrder.siteId, sharePointConfig.csvOrder.listId);
+  const items: OrderCsvItem[] = await getCsvListItems(sharePointConfig.csvOrder.siteId, sharePointConfig.csvOrder.listId);
   logger.info("Retrieved {ItemCount} CSV items to handle", items.length);
 
   for (let i: number = 0; i < items.length; i++) {
-    const listItem: ListItem = items[i];
+    const listItem: OrderCsvItem = items[i];
     const logFileIndexStr: string = `[${i + 1} / ${items.length}]`;
 
     logger.logConfig({
-      prefix: `${logFileIndexStr} - ${listItem.id}`
+      prefix: `${logFileIndexStr} - Id ${listItem.id}`
     });
 
-    const fromDateStr: string | null = (listItem.fields["FromDate"] as string | null)?.slice(0, 10);
-    const toDateStr: string | null = (listItem.fields["ToDate"] as string | null)?.slice(0, 10);
+    const fromDateStr: string = listItem.fields.FromDate.slice(0, 10);
+    const toDateStr: string = listItem.fields.ToDate.slice(0, 10);
 
     const missingDateFields: boolean = !fromDateStr || !toDateStr;
     const invalidDateFormat: boolean = !dateRegex.test(fromDateStr) || !dateRegex.test(toDateStr);

@@ -17,9 +17,11 @@ import {
 import type {
   CollectionResponse,
   CsvStatus,
+  InvoiceItem,
   InvoiceStatus,
   MarkCsvItemAsHandledRequest,
-  MarkInvoiceItemAsHandledRequest
+  MarkInvoiceItemAsHandledRequest,
+  OrderCsvItem
 } from "../types/sharepoint.js";
 
 const credential = new DefaultAzureCredential();
@@ -36,20 +38,24 @@ export const getItemContentAsBase64 = async (siteId: string, listId: string, ite
   return Buffer.from(arrayBuffer).toString("base64");
 };
 
-export const getCsvListItems = async (siteId: string, listId: string): Promise<ListItem[]> => {
+export const getCsvListItems = async (siteId: string, listId: string): Promise<OrderCsvItem[]> => {
   const endpoint: string = `sites/${siteId}/lists/${listId}/items?expand=fields(select=Title,FromDate,ToDate)&$filter=fields/Status eq '${SharePointStatusQueued}'&$top=100`;
   const response: Response = await _getListItems(endpoint);
   const listItems: CollectionResponse<ListItem> = await response.json();
 
   countInc(`${MetricsPrefix}_${MetricsFilePrefix}_GetCsvListItems`, "Number of CSV list items retrieved", listItems.value.length);
 
-  return listItems.value;
+  return listItems.value as OrderCsvItem[];
 };
 
 export const getCsvWebUrl = async (siteId: string, listId: string, newCsvItemId: string): Promise<string> => {
   const endpoint: string = `sites/${siteId}/lists/${listId}/items/${newCsvItemId}/driveItem`;
   const response: Response = await _getListItems(endpoint);
   const listItem: DriveItem = await response.json();
+
+  if (!listItem.webUrl) {
+    throw new Error(`Web URL is missing for CSV item with Id ${newCsvItemId} in list with ListId ${listId} at SiteId ${siteId}`);
+  }
 
   return listItem.webUrl;
 };
@@ -59,14 +65,14 @@ export const getInvoiceListItems = async (
   listId: string,
   handledErrorThreshold: number,
   unhandledTop: number
-): Promise<ListItem[]> => {
+): Promise<InvoiceItem[]> => {
   const endpoint: string = `sites/${siteId}/lists/${listId}/items?expand=fields(select=HandledCount,Status,InsertedCount,InvoiceNumber,LinkFilename)&$filter=(fields/Status eq '${SharePointStatusQueued}' OR fields/Status eq '${SharePointStatusFailedWillRetry}') AND fields/HandledCount lt ${handledErrorThreshold} AND fields/DocIcon eq 'pdf'&$top=${unhandledTop}`;
   const response: Response = await _getListItems(endpoint);
   const listItems: CollectionResponse<ListItem> = await response.json();
 
   countInc(`${MetricsPrefix}_${MetricsFilePrefix}_GetInvoiceListItems`, "Number of invoice list items retrieved", listItems.value.length);
 
-  return listItems.value;
+  return listItems.value as InvoiceItem[];
 };
 
 export const getLatestCsvItemId = async (siteId: string, listId: string): Promise<string> => {
@@ -78,7 +84,12 @@ export const getLatestCsvItemId = async (siteId: string, listId: string): Promis
     throw new Error(`No CSV items found in list with ListId ${listId} at SiteId ${siteId}`);
   }
 
-  return listItems.value[0].id;
+  const csvItemId: string | undefined = listItems.value[0].id;
+  if (!csvItemId) {
+    throw new Error(`No CSV item with Id ${listId} at SiteId ${siteId}`);
+  }
+
+  return csvItemId;
 };
 
 export const markCsvItemAsHandled = async (
@@ -138,7 +149,7 @@ export const markInvoiceItemAsHandled = async (
   status: InvoiceStatus,
   handledCount: number,
   insertedCount: number,
-  invoiceNumber: string,
+  invoiceNumber: string | null,
   errorReason?: string
 ): Promise<void> => {
   const endpoint: string = `sites/${siteId}/lists/${listId}/items/${itemId}/fields`;

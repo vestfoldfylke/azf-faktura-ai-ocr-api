@@ -13,6 +13,16 @@ export type CollectionResponse<T> = {
 
 export type CsvStatus = typeof SharePointStatusQueued | typeof SharePointStatusFailed | typeof SharePointStatusSuccess;
 
+export type InvoiceItem = {
+  id: string;
+  fields: {
+    HandledCount: number;
+    InsertedCount: number;
+    InvoiceNumber: string;
+    LinkFilename: string;
+  };
+};
+
 export type InvoiceStatus =
   | typeof SharePointStatusQueued
   | typeof SharePointStatusFailedWillRetry
@@ -35,8 +45,16 @@ export type MarkInvoiceItemAsHandledRequest = {
   Status: InvoiceStatus;
   HandledCount: number;
   InsertedCount: number;
-  InvoiceNumber: string;
-  Error?: string;
+  InvoiceNumber: string | null;
+  Error?: string | null;
+};
+
+export type OrderCsvItem = {
+  id: string;
+  fields: {
+    FromDate: string;
+    ToDate: string;
+  };
 };
 
 export type SharePointConfig = {
