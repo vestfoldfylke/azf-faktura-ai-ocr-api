@@ -50,12 +50,12 @@ export async function errorTriggerHandling(
 
     if (error instanceof Error) {
       return {
-        status: 400,
+        status: 500,
         body: error.message
       };
     }
 
-    throw new HTTPError(400, "An unknown error occurred");
+    throw new HTTPError(500, "Internal Server Error");
   } finally {
     await logger.flush();
   }
