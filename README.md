@@ -100,21 +100,38 @@ Create a `local.settings.json` file in the project root with the following conte
     "MONGODB_CONNECTION_STRING": "mongodb+srv://<db_username>:<db_password>@<db_host>/?appName=azf-faktura-ai-ocr-api-local",
     "MONGODB_COLLECTION_NAME": "<db_collection_name>",
     "MONGODB_DATABASE_NAME": "<db_name>",
-    "SP_CSV_ORDER_SITE_ID": "site-id-here",
-    "SP_CSV_ORDER_LIST_ID": "list-id-here",
-    "SP_CSV_EXPORT_SITE_ID": "site-id-here",
     "SP_CSV_EXPORT_DRIVE_ID": "drive-id-here",
     "SP_CSV_EXPORT_LIST_ID": "list-id-here",
-    "SP_INVOICE_SITE_ID": "site-id-here",
-    "SP_INVOICE_LIST_ID": "list-id-here",
-    "SP_INVOICE_LIST_UNHANDLED_TOP": "2",
+    "SP_CSV_EXPORT_SITE_ID": "site-id-here",
+    "SP_CSV_ORDER_LIST_ID": "list-id-here",
+    "SP_CSV_ORDER_SITE_ID": "site-id-here",
     // Number of unhandled PDF documents to list from SharePoint per execution. Should not be set too high to avoid azure function timeout.
     "SP_INVOICE_HANDLED_ERROR_THRESHOLD": "3",
+    "SP_INVOICE_LIST_ID": "list-id-here",
     // Number of times a PDF document can be processed with errors before it is no longer attempted to be processed.
+    "SP_INVOICE_LIST_UNHANDLED_TOP": "2",
+    "SP_INVOICE_SITE_ID": "site-id-here",
     "BETTERSTACK_MIN_LOG_LEVEL": "info"
   }
 }
 ```
+
+#### SP_*_ID values
+
+- SP_CSV_EXPORT_DRIVE_ID
+  - Find the id by running the following Graph API query in Graph Explorer: `GET https://graph.microsoft.com/v1.0/sites/<SP_CSV_EXPORT_SITE_ID>/drives`. Find the drive named "Faktura CSV'er", and copy the id.
+- SP_CSV_EXPORT_LIST_ID
+  - Found by visiting the SharePoint site, going to the list "Faktura CSV'er", choosing Settings for library, more library settings, and looking at the URL. For instance, in the URL `https://<orgname>.sharepoint.com/sites/<sitename>/_layouts/15/listedit.aspx?List=%7BGUID%7D`, copy the value between `List=%7B` and `%7D` and use it as the list id.
+- SP_CSV_EXPORT_SITE_ID
+  - Found by visiting the SharePoint site, and appending `/_api/site/id` to the URL. Copy the last GUID and use it as the site id.
+- SP_CSV_ORDER_LIST_ID
+    - Found by visiting the SharePoint site, going to the list "Bestille csv", choosing Settings for library, more library settings, and looking at the URL. For instance, in the URL `https://<orgname>.sharepoint.com/sites/<sitename>/_layouts/15/listedit.aspx?List=%7BGUID%7D`, copy the value between `List=%7B` and `%7D` and use it as the list id.
+- SP_CSV_ORDER_SITE_ID
+    - Found by visiting the SharePoint site, and appending `/_api/site/id` to the URL. Copy the last GUID and use it as the site id.
+- SP_INVOICE_LIST_ID
+    - Found by visiting the SharePoint site, going to the list "Faktura AI", choosing Settings for library, more library settings, and looking at the URL. For instance, in the URL `https://<orgname>.sharepoint.com/sites/<sitename>/_layouts/15/listedit.aspx?List=%7BGUID%7D`, copy the value between `List=%7B` and `%7D` and use it as the list id.
+- SP_INVOICE_SITE_ID
+    - Found by visiting the SharePoint site, and appending `/_api/site/id` to the URL. Copy the last GUID and use it as the site id.
 
 ## Running the Project
 
