@@ -4,7 +4,13 @@ import { logger } from "@vestfoldfylke/loglady";
 import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { ZodSafeParseResult } from "zod";
 
-import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../../../constants.js";
+import {
+  MetricsAgentLabelName,
+  MetricsPrefix,
+  MetricsResultFailedLabelValue,
+  MetricsResultLabelName,
+  MetricsResultSuccessLabelValue
+} from "../../../constants.js";
 import type { IAIAgent, MistralConfig } from "../../../types/ai/ai-agent.js";
 import type { OcrRequestOptions, ZodObjectAnyShape } from "../../../types/ai/ocr.js";
 import { type Invoice, InvoiceSchema } from "../../../types/ai/zod-ocr.js";
@@ -47,17 +53,21 @@ export class MistralAgent implements IAIAgent {
 
       if (!result) {
         logger.warn("[{VendorName} - {Model}] - OCR processing failed for base64", this.agentName, this._mistralConfig.model);
-        count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
-          MetricsResultLabelName,
-          MetricsResultFailedLabelValue
-        ]);
+        count(
+          `${MetricsPrefix}_OcrChunk`,
+          "Number of OCR chunks processed by provider",
+          [MetricsResultLabelName, MetricsResultFailedLabelValue],
+          [MetricsAgentLabelName, this.agentName]
+        );
         return null;
       }
 
-      count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
-        MetricsResultLabelName,
-        MetricsResultSuccessLabelValue
-      ]);
+      count(
+        `${MetricsPrefix}_OcrChunk`,
+        "Number of OCR chunks processed by provider",
+        [MetricsResultLabelName, MetricsResultSuccessLabelValue],
+        [MetricsAgentLabelName, this.agentName]
+      );
       logger.info("[{VendorName} - {Model}] - OCR completed", this.agentName, this._mistralConfig.model);
 
       if (!result.documentAnnotation) {
@@ -66,10 +76,12 @@ export class MistralAgent implements IAIAgent {
 
       const parsedInvoice: ZodSafeParseResult<Invoice> = InvoiceSchema.safeParse(JSON.parse(result.documentAnnotation));
       if (!parsedInvoice.success) {
-        count(`${MetricsPrefix}_${this.agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this.agentName}`, [
-          MetricsResultLabelName,
-          MetricsResultFailedLabelValue
-        ]);
+        count(
+          `${MetricsPrefix}_OcrDAChunk`,
+          "Number of OCR document annotation chunks processed by provider",
+          [MetricsResultLabelName, MetricsResultFailedLabelValue],
+          [MetricsAgentLabelName, this.agentName]
+        );
         logger.errorException(
           parsedInvoice.error,
           "[{VendorName} - {Model}] - Failed to parse documentAnnotation into a type of Invoice. Skipping'",
@@ -79,10 +91,12 @@ export class MistralAgent implements IAIAgent {
         return null;
       }
 
-      count(`${MetricsPrefix}_${this.agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this.agentName}`, [
-        MetricsResultLabelName,
-        MetricsResultSuccessLabelValue
-      ]);
+      count(
+        `${MetricsPrefix}_OcrDAChunk`,
+        "Number of OCR document annotation chunks processed by provider",
+        [MetricsResultLabelName, MetricsResultSuccessLabelValue],
+        [MetricsAgentLabelName, this.agentName]
+      );
       logger.info(
         "[{VendorName} - {Model}] - Successfully parsed documentAnnotation into a type of Invoice",
         this.agentName,
