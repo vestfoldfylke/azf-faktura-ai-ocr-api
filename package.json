@@ -33,22 +33,22 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@biomejs/biome": "2.4.13",
+    "@biomejs/biome": "2.4.16",
     "@microsoft/microsoft-graph-types": "^2.43.1",
-    "@types/node": "^25.6.0",
-    "tsx": "^4.21.0",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@azure/functions": "^4.14.0",
+    "@azure/functions": "^4.16.0",
     "@azure/identity": "^4.13.1",
-    "@mistralai/mistralai": "^2.2.1",
-    "@vestfoldfylke/loglady": "^1.5.3",
+    "@mistralai/mistralai": "^2.2.5",
+    "@vestfoldfylke/loglady": "^2.0.0",
     "@vestfoldfylke/vestfold-metrics": "^1.0.1",
     "mongodb": "^7.2.0",
-    "openai": "^6.34.0",
+    "openai": "^6.39.1",
     "pdf-lib": "^1.17.1",
     "source-map-support": "^0.5.21",
-    "zod": "^4.3.6"
+    "zod": "^4.4.3"
   }
 }
