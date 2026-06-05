@@ -1,6 +1,6 @@
 {
   "name": "azf-faktura-ai-ocr-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Extract data from invoices using AI-powered OCR technology",
   "main": "dist/src/functions/*.js",
   "type": "module",
