@@ -2,6 +2,7 @@ export const MetricsPrefix = "FakturaAIOcr";
 export const MetricsResultLabelName = "result";
 export const MetricsResultSuccessLabelValue = "success";
 export const MetricsResultFailedLabelValue = "failed";
+export const MetricsAgentLabelName = "agent";
 
 export const SharePointStatusQueued = "I kø";
 export const SharePointStatusFailed = "Feilet";

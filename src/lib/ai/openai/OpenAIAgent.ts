@@ -5,7 +5,13 @@ import { zodResponseFormat } from "openai/helpers/zod";
 import type { ChatCompletion } from "openai/resources";
 import type { ZodSafeParseResult } from "zod";
 
-import { MetricsPrefix, MetricsResultFailedLabelValue, MetricsResultLabelName, MetricsResultSuccessLabelValue } from "../../../constants.js";
+import {
+  MetricsAgentLabelName,
+  MetricsPrefix,
+  MetricsResultFailedLabelValue,
+  MetricsResultLabelName,
+  MetricsResultSuccessLabelValue
+} from "../../../constants.js";
 import type { IAIAgent, OpenAIConfig } from "../../../types/ai/ai-agent.js";
 import type { OcrRequestOptions, ZodObjectAnyShape } from "../../../types/ai/ocr.js";
 import { type Invoice, InvoiceSchema } from "../../../types/ai/zod-ocr.js";
@@ -57,10 +63,12 @@ export class OpenAIAgent implements IAIAgent {
 
       if (result.choices.length === 0) {
         logger.warn("[{VendorName} - {Model}] - OCR processing returned 0 messages", this.agentName, this._openAiConfig.model);
-        count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
-          MetricsResultLabelName,
-          MetricsResultFailedLabelValue
-        ]);
+        count(
+          `${MetricsPrefix}_OcrChunk`,
+          "Number of OCR chunks processed by provider",
+          [MetricsResultLabelName, MetricsResultFailedLabelValue],
+          [MetricsAgentLabelName, this.agentName]
+        );
         return null;
       }
 
@@ -70,10 +78,12 @@ export class OpenAIAgent implements IAIAgent {
           this.agentName,
           this._openAiConfig.model
         );
-        count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
-          MetricsResultLabelName,
-          MetricsResultFailedLabelValue
-        ]);
+        count(
+          `${MetricsPrefix}_OcrChunk`,
+          "Number of OCR chunks processed by provider",
+          [MetricsResultLabelName, MetricsResultFailedLabelValue],
+          [MetricsAgentLabelName, this.agentName]
+        );
         return null;
       }
 
@@ -83,17 +93,21 @@ export class OpenAIAgent implements IAIAgent {
         this._openAiConfig.model,
         result.choices.length
       );
-      count(`${MetricsPrefix}_${this.agentName}_OcrChunk`, `Number of OCR chunks processed with ${this.agentName}`, [
-        MetricsResultLabelName,
-        MetricsResultSuccessLabelValue
-      ]);
+      count(
+        `${MetricsPrefix}_OcrChunk`,
+        "Number of OCR chunks processed with by provider",
+        [MetricsResultLabelName, MetricsResultSuccessLabelValue],
+        [MetricsAgentLabelName, this.agentName]
+      );
 
       const parsedInvoice: ZodSafeParseResult<Invoice> = InvoiceSchema.safeParse(JSON.parse(result.choices[0].message.content));
       if (!parsedInvoice.success) {
-        count(`${MetricsPrefix}_${this.agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this.agentName}`, [
-          MetricsResultLabelName,
-          MetricsResultFailedLabelValue
-        ]);
+        count(
+          `${MetricsPrefix}_OcrDAChunk`,
+          "Number of OCR document annotation chunks processed by provider",
+          [MetricsResultLabelName, MetricsResultFailedLabelValue],
+          [MetricsAgentLabelName, this.agentName]
+        );
         logger.errorException(
           parsedInvoice.error,
           "[{VendorName} - {Model}] - Failed to parse documentAnnotation into a type of Invoice. Skipping'",
@@ -103,10 +117,12 @@ export class OpenAIAgent implements IAIAgent {
         return null;
       }
 
-      count(`${MetricsPrefix}_${this.agentName}_OcrDAChunk`, `Number of OCR document annotation chunks processed with ${this.agentName}`, [
-        MetricsResultLabelName,
-        MetricsResultSuccessLabelValue
-      ]);
+      count(
+        `${MetricsPrefix}_OcrDAChunk`,
+        "Number of OCR document annotation chunks processed by provider",
+        [MetricsResultLabelName, MetricsResultSuccessLabelValue],
+        [MetricsAgentLabelName, this.agentName]
+      );
       logger.info(
         "[{VendorName} - {Model}] - Successfully parsed documentAnnotation into a type of Invoice",
         this.agentName,
