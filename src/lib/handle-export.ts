@@ -1,9 +1,17 @@
 import type { HttpResponseInit } from "@azure/functions";
 import { logger } from "@vestfoldfylke/loglady";
+import { count } from "@vestfoldfylke/vestfold-metrics";
 import type { WithId } from "mongodb";
 
 import { getSharePointConfig } from "../config.js";
-import { SharePointStatusFailed, SharePointStatusSuccess } from "../constants.js";
+import {
+  MetricsPrefix,
+  MetricsResultFailedLabelValue,
+  MetricsResultLabelName,
+  MetricsResultSuccessLabelValue,
+  SharePointStatusFailed,
+  SharePointStatusSuccess
+} from "../constants.js";
 
 import type { CsvItem, ProblematicCsvItem } from "../types/faktura-ai.js";
 import type { OrderCsvItem, SharePointConfig } from "../types/sharepoint.js";
@@ -15,6 +23,8 @@ import { getCsvListItems, getCsvWebUrl, getLatestCsvItemId, markCsvItemAsHandled
 const sharePointConfig: SharePointConfig = getSharePointConfig();
 
 const dateRegex: RegExp = /^\d{4}-\d{2}-\d{2}$/;
+
+const MetricsFilePrefix = "HandleExport";
 
 export const handleExport = async (): Promise<HttpResponseInit> => {
   // get items from sharepoint list which isn't handled
@@ -61,6 +71,11 @@ export const handleExport = async (): Promise<HttpResponseInit> => {
 
       await markCsvItemAsHandled(sharePointConfig.csvOrder.siteId, sharePointConfig.csvOrder.listId, listItem.id, SharePointStatusFailed);
 
+      count(`${MetricsPrefix}_${MetricsFilePrefix}_CsvExport`, "Number of csv exports processed", [
+        MetricsResultLabelName,
+        MetricsResultFailedLabelValue
+      ]);
+
       continue;
     }
 
@@ -78,10 +93,17 @@ export const handleExport = async (): Promise<HttpResponseInit> => {
       }
     );
 
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_CsvExportItems`, "Number of csv export items found");
+
     if (csvItems.length === 0) {
       logger.info("No work items found in the specified date range");
 
       await markCsvItemAsHandled(sharePointConfig.csvOrder.siteId, sharePointConfig.csvOrder.listId, listItem.id, SharePointStatusSuccess);
+
+      count(`${MetricsPrefix}_${MetricsFilePrefix}_CsvExport`, "Number of csv exports processed", [
+        MetricsResultLabelName,
+        MetricsResultSuccessLabelValue
+      ]);
 
       continue;
     }
@@ -94,6 +116,7 @@ export const handleExport = async (): Promise<HttpResponseInit> => {
     } else {
       logger.info("No problematic csv items found");
     }
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_CsvExportProblematicItems`, "Number of csv export problematic items found");
 
     // add UTF-8 BOM to ensure Excel opens the file with correct encoding
     const csvContent: string = `\uFEFF${convertCsvItemsToCsv(csvItems, problematicCsvItems)}`;
@@ -114,6 +137,11 @@ export const handleExport = async (): Promise<HttpResponseInit> => {
       csvItems.length,
       problematicCsvItems.length
     );
+
+    count(`${MetricsPrefix}_${MetricsFilePrefix}_CsvExport`, "Number of csv exports processed", [
+      MetricsResultLabelName,
+      MetricsResultSuccessLabelValue
+    ]);
   }
 
   return {
